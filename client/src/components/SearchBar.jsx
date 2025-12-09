@@ -8,11 +8,11 @@ const SearchBar = ({ query, setQuery }) => {
       <div className="relative max-w-lg mx-auto">
         
         {/* Иконка поиска */}
-        <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-emerald-500 dark:text-emerald-400" />
+        <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-teal-500 dark:text-teal-400" /> {/* ИЗМЕНЕНО: Цвет иконки для соответствия NavBar */}
         
         <input
           type="text"
-          placeholder="Найти по названию или тексту..." // Измененный текст-заглушка
+          placeholder="Найти объявления, товары или услуги..." // ИЗМЕНЕНО: Новый текст-заглушка
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           
@@ -21,7 +21,7 @@ const SearchBar = ({ query, setQuery }) => {
                      bg-transparent 
                      text-gray-900 dark:text-gray-100 
                      border-0 border-b-2 border-gray-400 dark:border-gray-600 
-                     focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 
+                     focus:outline-none focus:border-teal-500 dark:focus:border-teal-400  /* ИЗМЕНЕНО: Цвет фокуса для соответствия NavBar */
                      text-base placeholder-gray-500 dark:placeholder-gray-500
                      transition duration-200"
         />

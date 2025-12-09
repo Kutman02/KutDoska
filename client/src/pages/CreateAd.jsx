@@ -1,28 +1,31 @@
+// src/components/CreateAd.jsx (Переименован из CreateNote.jsx)
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { FiImage, FiTag, FiLock, FiUnlock, FiSend } from "react-icons/fi"; // Новые иконки
+import { FiImage, FiTag, FiLock, FiUnlock, FiSend, FiDollarSign, FiMapPin } from "react-icons/fi"; // Новые иконки
 
 // Классы для стилизации кнопок Tiptap
 const TiptapButtonClass = (isActive) => 
   `p-2 rounded-lg text-sm font-medium transition duration-200 
    ${isActive 
-     ? "bg-purple-600 text-white shadow-md hover:bg-purple-700" 
+     ? "bg-teal-600 text-white shadow-md hover:bg-teal-700" // ИЗМЕНЕНО: purple -> teal
      : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
    }`;
 
-const CreateNote = () => {
+const CreateAd = () => { // ИЗМЕНЕНО: CreateNote -> CreateAd
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState(""); 
+  const [price, setPrice] = useState(""); // ДОБАВЛЕНО: Поле для цены
+  const [location, setLocation] = useState(""); // ДОБАВЛЕНО: Поле для локации
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isPublic, setIsPublic] = useState(false); 
+  const [isPublic, setIsPublic] = useState(true); // Объявления по умолчанию публичные
 
   const editor = useEditor({
     extensions: [StarterKit],
-    content: "<p>Напишите здесь свою заметку...</p>",
+    content: "<p>Введите подробное описание товара или услуги. Укажите состояние, характеристики и условия сделки...</p>", // ИЗМЕНЕНО: Текст заглушка
     editorProps: {
       attributes: {
         // Добавляем класс для стилизации содержимого редактора
@@ -40,7 +43,8 @@ const CreateNote = () => {
     try {
       // Имитация загрузки
       setLoading(true); 
-      const res = await fetch("http://localhost:8080/api/upload", {
+      // Адаптируйте URL для загрузки изображений объявлений, если нужно
+      const res = await fetch("http://localhost:8080/api/upload/ad-image", {
         method: "POST",
         body: formData,
       });
@@ -60,8 +64,8 @@ const CreateNote = () => {
     e.preventDefault();
     const content = editor?.getText();
 
-    if (!title.trim() || !content.trim()) {
-      alert("Пожалуйста, заполните заголовок и содержание.");
+    if (!title.trim() || !content.trim() || !price.trim()) { // ДОБАВЛЕНО: Проверка цены
+      alert("Пожалуйста, заполните Заголовок, Цену и Описание.");
       return;
     }
 
@@ -78,8 +82,9 @@ const CreateNote = () => {
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
 
+      // ИЗМЕНЕНО: URL на создание объявления
       const response = await fetch(
-        "http://localhost:8080/api/notes",
+        "http://localhost:8080/api/ads",
         {
           method: "POST",
           headers: {
@@ -89,6 +94,8 @@ const CreateNote = () => {
           body: JSON.stringify({
             title,
             content,
+            price: parseFloat(price), // Отправляем цену как число
+            location, // ДОБАВЛЕНО: локация
             imageUrl,
             tags: tagArray,
             isPublic, 
@@ -98,12 +105,12 @@ const CreateNote = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Не удалось создать заметку.");
+        throw new Error(errorData.message || "Не удалось создать объявление."); // ИЗМЕНЕНО: Заметка -> Объявление
       }
 
       navigate("/dashboard");
     } catch (err) {
-      console.error("Ошибка при создании заметок:", err.message);
+      console.error("Ошибка при создании объявления:", err.message);
       alert(err.message);
     } finally {
       setLoading(false);
@@ -111,11 +118,12 @@ const CreateNote = () => {
   };
 
   return (
-    // 💡 Измененный фон
-    <div className="min-h-screen p-8 bg-purple-50 dark:bg-gray-950">
+    // 💡 Измененный фон: purple-50 -> teal-50
+    <div className="min-h-screen p-8 bg-teal-50 dark:bg-gray-950">
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-6 border-b-2 border-purple-400 pb-2">
-          Новая Идея / Заметка
+        {/* ИЗМЕНЕНО: Заголовок и цвет */}
+        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-6 border-b-2 border-teal-400 pb-2">
+          Разместить Новое Объявление
         </h2>
 
         {/* Форма обернута в карточку */}
@@ -125,26 +133,57 @@ const CreateNote = () => {
           <div className="relative">
             <input
               type="text"
-              placeholder="Заголовок заметки (обязательно)"
+              placeholder="Название товара или услуги (обязательно)" // ИЗМЕНЕНО: Заголовок заметки -> Название товара
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-5 py-3 text-lg border-b-2 border-gray-300 dark:border-gray-700 focus:border-purple-500 bg-transparent dark:text-white focus:outline-none transition duration-200 font-semibold"
+              // ИЗМЕНЕНО: Цвет фокуса
+              className="w-full px-5 py-3 text-lg border-b-2 border-gray-300 dark:border-gray-700 focus:border-teal-500 bg-transparent dark:text-white focus:outline-none transition duration-200 font-semibold"
             />
           </div>
 
-          {/* 2. Поле Тегов */}
+          {/* 2. Цена и Локация (В одном ряду) */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            
+            {/* Поле Цены */}
+            <div className="flex items-center gap-3 border p-3 rounded-xl dark:border-gray-700 bg-gray-50 dark:bg-gray-700 w-full sm:w-1/2">
+                <FiDollarSign className="w-5 h-5 text-teal-500 dark:text-teal-400" /> {/* ИЗМЕНЕНО: Цвет иконки */}
+                <input
+                type="number"
+                placeholder="Цена (в сомах)"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full bg-transparent dark:text-gray-200 focus:outline-none appearance-none"
+                required // Обязательное поле для объявления
+                />
+            </div>
+
+            {/* Поле Локации */}
+            <div className="flex items-center gap-3 border p-3 rounded-xl dark:border-gray-700 bg-gray-50 dark:bg-gray-700 w-full sm:w-1/2">
+                <FiMapPin className="w-5 h-5 text-teal-500 dark:text-teal-400" /> {/* ИЗМЕНЕНО: Цвет иконки */}
+                <input
+                type="text"
+                placeholder="Город или адрес"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="w-full bg-transparent dark:text-gray-200 focus:outline-none"
+                />
+            </div>
+
+          </div>
+
+          {/* 3. Поле Тегов */}
           <div className="flex items-center gap-3 border p-3 rounded-xl dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-            <FiTag className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+            <FiTag className="w-5 h-5 text-teal-500 dark:text-teal-400" /> {/* ИЗМЕНЕНО: Цвет иконки */}
             <input
               type="text"
-              placeholder="Теги (разделяйте запятыми: работа, идеи, личное)"
+              placeholder="Ключевые слова (разделяйте запятыми: ремонт, авто, услуга)" // ИЗМЕНЕНО: Текст заглушка
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               className="w-full bg-transparent dark:text-gray-200 focus:outline-none"
             />
           </div>
 
-          {/* 3. Tiptap Toolbar */}
+          {/* 4. Tiptap Toolbar (ИЗМЕНЕН ЦВЕТ) */}
           {editor && (
             <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg flex gap-3 flex-wrap shadow-inner">
               {[
@@ -167,19 +206,19 @@ const CreateNote = () => {
             </div>
           )}
 
-          {/* 4. Редактор */}
+          {/* 5. Редактор */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl min-h-[300px] shadow-inner">
             <EditorContent editor={editor} />
           </div>
 
-          {/* 5. Изображение и Настройки Публичности (Один ряд) */}
+          {/* 6. Изображение и Настройки Публичности (Один ряд) */}
           <div className="flex flex-col sm:flex-row justify-between gap-4 pt-2">
             
-            {/* Флажок для публичности */}
+            {/* Флажок для публичности (для модерации/статуса, хотя объявления обычно публичные) */}
             <div className={`flex items-center space-x-3 p-3 rounded-lg w-full sm:w-1/2 cursor-pointer 
                             transition duration-200 ${isPublic 
-                              ? 'bg-pink-100 dark:bg-pink-900 border border-pink-500' 
-                              : 'bg-gray-100 dark:bg-gray-700 border border-transparent hover:border-purple-300'}`}
+                              ? 'bg-teal-100 dark:bg-teal-900 border border-teal-500' // ИЗМЕНЕНО: Цвет
+                              : 'bg-gray-100 dark:bg-gray-700 border border-transparent hover:border-teal-300'}`} // ИЗМЕНЕНО: Цвет
                  onClick={() => setIsPublic(!isPublic)}>
               
               <input
@@ -190,22 +229,22 @@ const CreateNote = () => {
                 className="hidden" 
               />
               {isPublic ? (
-                  <FiUnlock className="w-5 h-5 text-pink-600" />
+                  <FiUnlock className="w-5 h-5 text-teal-600" /> // ИЗМЕНЕНО: Цвет
               ) : (
                   <FiLock className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               )}
               <label htmlFor="isPublic" className="text-gray-800 dark:text-gray-200 font-medium select-none">
-                {isPublic ? "Публичная (Видно всем)" : "Частная (Только для вас)"}
+                {isPublic ? "Активно (Отображается на доске)" : "Черновик (Только для вас)"} {/* ИЗМЕНЕНО: Текст */}
               </label>
             </div>
             
-            {/* Загрузка Изображения */}
+            {/* Загрузка Изображения (ИЗМЕНЕН ЦВЕТ) */}
             <label 
                 htmlFor="image-upload" 
                 className={`flex items-center justify-center w-full sm:w-1/2 p-3 rounded-lg font-medium cursor-pointer transition duration-200 
-                          ${imageUrl ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 border border-purple-500' : 'bg-purple-500 text-white hover:bg-purple-600'}`}>
+                          ${imageUrl ? 'bg-teal-100 dark:bg-teal-900 text-teal-700 border border-teal-500' : 'bg-teal-500 text-white hover:bg-teal-600'}`}>
                 <FiImage className="w-5 h-5 mr-2" />
-                {imageUrl ? "Изображение загружено" : "Загрузить обложку"}
+                {imageUrl ? "Фото товара загружено" : "Загрузить фото товара"} {/* ИЗМЕНЕНО: Текст */}
                 <input
                     id="image-upload"
                     type="file"
@@ -220,7 +259,7 @@ const CreateNote = () => {
           </div>
           {/* Конец ряда */}
 
-          {/* Image Preview */}
+          {/* Image Preview (без изменений) */}
           {imageUrl && (
             <div className="relative border-4 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-2">
               <img
@@ -239,11 +278,11 @@ const CreateNote = () => {
           )}
 
 
-          {/* Кнопка Отправки */}
+          {/* Кнопка Отправки (ИЗМЕНЕН ЦВЕТ) */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-pink-600 text-white px-6 py-3 text-lg font-bold rounded-xl shadow-lg hover:bg-pink-700 transition duration-300 transform hover:-translate-y-0.5"
+            className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white px-6 py-3 text-lg font-bold rounded-xl shadow-lg hover:bg-teal-700 transition duration-300 transform hover:-translate-y-0.5" // ИЗМЕНЕНО: pink -> teal
           >
             {loading ? (
                 <>
@@ -253,7 +292,7 @@ const CreateNote = () => {
             ) : (
                 <>
                     <FiSend className="w-5 h-5" />
-                    Создать и Опубликовать
+                    Разместить Объявление
                 </>
             )}
           </button>
@@ -263,4 +302,4 @@ const CreateNote = () => {
   );
 };
 
-export default CreateNote;
+export default CreateAd;

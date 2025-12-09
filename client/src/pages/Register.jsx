@@ -1,7 +1,7 @@
 // src/pages/Register.jsx
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // Добавил Link
-import { FiUser, FiMail, FiLock, FiEdit3, FiAlertTriangle, FiCheckCircle } from "react-icons/fi"; // Новые иконки
+import { useNavigate, Link } from "react-router-dom"; 
+import { FiUser, FiMail, FiLock, FiEdit3, FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -60,11 +60,11 @@ const Register = () => {
       )}
 
       {/* 2. Левая акцентная сторона (Декоративная) */}
-      <div className="hidden lg:flex w-full lg:w-1/2 h-screen items-center justify-center bg-fuchsia-600 dark:bg-purple-800 p-12 relative overflow-hidden">
+      <div className="hidden lg:flex w-full lg:w-1/2 h-screen items-center justify-center bg-teal-600 dark:bg-teal-800 p-12 relative overflow-hidden">
         {/* Декоративные фигуры */}
         <div className="absolute inset-0 opacity-10">
             <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="currentColor" strokeWidth="1">
-                <path d="M50 10 L90 50 L50 90 L10 50 Z" /> {/* Ромб */}
+                <path d="M50 10 L90 50 L50 90 L10 50 Z" /> 
                 <circle cx="50" cy="50" r="15" />
             </svg>
         </div>
@@ -84,7 +84,7 @@ const Register = () => {
             onSubmit={handleRegister}
             className="bg-white dark:bg-gray-800 p-8 sm:p-10 rounded-xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-gray-700"
           >
-            <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-900 dark:text-white border-b pb-3 border-fuchsia-400/50">
+            <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-900 dark:text-white border-b pb-3 border-teal-400/50">
               Создание Аккаунта
             </h2>
             
@@ -94,7 +94,7 @@ const Register = () => {
               <input
                 type="text"
                 placeholder="Ваше Имя"
-                className="w-full pl-10 pr-4 py-3 border-b-2 border-gray-300 dark:border-gray-700 focus:border-fuchsia-500 rounded-none dark:bg-gray-700 dark:text-white focus:outline-none transition duration-200"
+                className="w-full pl-10 pr-4 py-3 border-b-2 border-gray-300 dark:border-gray-700 focus:border-teal-500 rounded-none dark:bg-gray-700 dark:text-white focus:outline-none transition duration-200"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -107,7 +107,7 @@ const Register = () => {
               <input
                 type="email"
                 placeholder="Электронная почта"
-                className="w-full pl-10 pr-4 py-3 border-b-2 border-gray-300 dark:border-gray-700 focus:border-fuchsia-500 rounded-none dark:bg-gray-700 dark:text-white focus:outline-none transition duration-200"
+                className="w-full pl-10 pr-4 py-3 border-b-2 border-gray-300 dark:border-gray-700 focus:border-teal-500 rounded-none dark:bg-gray-700 dark:text-white focus:outline-none transition duration-200"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -120,7 +120,7 @@ const Register = () => {
               <input
                 type="password"
                 placeholder="Пароль"
-                className="w-full pl-10 pr-4 py-3 border-b-2 border-gray-300 dark:border-gray-700 focus:border-fuchsia-500 rounded-none dark:bg-gray-700 dark:text-white focus:outline-none transition duration-200"
+                className="w-full pl-10 pr-4 py-3 border-b-2 border-gray-300 dark:border-gray-700 focus:border-teal-500 rounded-none dark:bg-gray-700 dark:text-white focus:outline-none transition duration-200"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -131,7 +131,7 @@ const Register = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-fuchsia-600 text-white py-3 rounded-lg font-bold text-lg shadow-xl shadow-fuchsia-500/30 hover:bg-fuchsia-700 transition duration-300 transform hover:scale-[1.01]"
+              className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white py-3 rounded-lg font-bold text-lg shadow-xl shadow-teal-500/30 hover:bg-teal-700 transition duration-300 transform hover:scale-[1.01]"
             >
               <FiEdit3 className="w-5 h-5" />
               {loading ? "Регистрация..." : "Зарегистрироваться"}
@@ -140,7 +140,7 @@ const Register = () => {
             {/* Link to Login */}
             <p className="mt-6 text-center text-gray-600 dark:text-gray-400 text-sm">
                 Уже есть аккаунт?{" "}
-                <Link to="/login" className="text-fuchsia-600 dark:text-fuchsia-400 font-medium hover:underline transition">
+                <Link to="/login" className="text-teal-600 dark:text-teal-400 font-medium hover:underline transition">
                     Войти
                 </Link>
             </p>

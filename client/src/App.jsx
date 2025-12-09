@@ -1,16 +1,17 @@
 import { Route, Routes } from "react-router-dom";
 import "./App.css";
 import Dashboard from "./pages/Dashboard";
-import CreateNote from "./pages/CreateNote";
+import CreateAd from "./pages/CreateAd"; // ИЗМЕНЕНО: CreateNote -> CreateAd
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Navbar from "./components/Navbar";
-import EditNotes from "./pages/EditNotes";
+import EditAd from "./pages/EditAd"; // ИЗМЕНЕНО: EditNotes -> EditAd
 import { Toaster } from "react-hot-toast";
 import PrivateRoute from "./privateRoutes/PrivateRoute";
 import { useContext, useEffect } from "react";
 import { AuthContext } from "./context/AuthContext";
 import PublicHome from "./pages/PublicHome";
+import AdView from "./pages/AdView";
 
 
 
@@ -31,16 +32,18 @@ function App() {
       <Navbar />
       <Routes>
         <Route path="/" element={<PublicHome />} />
+        <Route path="/ad-view/:id" element={<AdView />} />
         <Route path="/dashboard" element={
           <PrivateRoute>
             <Dashboard />
           </PrivateRoute>
         } />
-        <Route path="/create" element={<PrivateRoute><CreateNote /></PrivateRoute>} />
+        {/* ИЗМЕНЕНО: CreateNote -> CreateAd */}
+        <Route path="/create" element={<PrivateRoute><CreateAd /></PrivateRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/edit-notes/:id" element={<PrivateRoute><EditNotes /></PrivateRoute>} />
-        {/* Добавил PrivateRoute для EditNotes, чтобы только зарегистрированные пользователи могли редактировать */}
+        {/* ИЗМЕНЕНО: /edit-notes/:id -> /edit-ad/:id и EditNotes -> EditAd */}
+        <Route path="/edit-ad/:id" element={<PrivateRoute><EditAd /></PrivateRoute>} />
       </Routes>
     </>
   );

@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import NoteCard from "../components/NoteCard";
+import AdCard from "../components/AdCard"; // ИЗМЕНЕНО: NoteCard -> AdCard
 import SearchBar from "../components/SearchBar";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import { FiGrid, FiArrowLeft, FiArrowRight } from "react-icons/fi"; // Новые иконки
 
-const NOTES_PER_PAGE = 6;
+const ADS_PER_PAGE = 6; // ИЗМЕНЕНО: NOTES_PER_PAGE -> ADS_PER_PAGE
 
 const Dashboard = () => {
-  const [notes, setNotes] = useState([]);
+  const [ads, setAds] = useState([]); // ИЗМЕНЕНО: notes -> ads
   const [query, setQuery] = useState("");
-  const [tagFilter, setTagFilter] = useState("Все"); // Изменено на "Все" для соответствия массиву tags
+  const [tagFilter, setTagFilter] = useState("Все");
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,7 +18,7 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
-  const fetchNotes = async () => {
+  const fetchAds = async () => { // ИЗМЕНЕНО: fetchNotes -> fetchAds
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -29,7 +29,7 @@ const Dashboard = () => {
       }
 
       const response = await fetch(
-        "http://localhost:8080/api/notes",
+        "http://localhost:8080/api/ads", // ИЗМЕНЕНО: /api/notes -> /api/ads
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -37,15 +37,15 @@ const Dashboard = () => {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to fetch notes");
+      if (!response.ok) throw new Error("Failed to fetch advertisements"); // ИЗМЕНЕНО: notes -> advertisements
 
       const data = await response.json();
-      setNotes(data);
+      setAds(data); // ИЗМЕНЕНО: setNotes -> setAds
 
       const allTags = new Set();
-      data.forEach((note) => {
-        if (Array.isArray(note.tags)) {
-          note.tags.forEach((tag) => allTags.add(tag));
+      data.forEach((ad) => { // ИЗМЕНЕНО: note -> ad
+        if (Array.isArray(ad.tags)) {
+          ad.tags.forEach((tag) => allTags.add(tag));
         }
       });
       // Используем "Все" вместо "all" для соответствия UI
@@ -59,7 +59,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    fetchNotes();
+    fetchAds(); // ИЗМЕНЕНО: fetchNotes -> fetchAds
   }, []);
 
   const handleDelete = async (id, title) => {
@@ -71,7 +71,7 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:8080/api/notes/${id}`,
+        `http://localhost:8080/api/ads/${id}`, // ИЗМЕНЕНО: /api/notes -> /api/ads
         {
           method: "DELETE",
           headers: {
@@ -80,9 +80,9 @@ const Dashboard = () => {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to delete note");
+      if (!response.ok) throw new Error("Failed to delete advertisement");
 
-      setNotes((prev) => prev.filter((note) => note._id !== id));
+      setAds((prev) => prev.filter((ad) => ad._id !== id)); // ИЗМЕНЕНО: setNotes -> setAds, note -> ad
       toast.success("Объявление успешно удалено");
     } catch (err) {
       console.error(err.message);
@@ -96,23 +96,24 @@ const Dashboard = () => {
     return tmp.textContent || tmp.innerText || "";
   };
 
-  const filteredNotes = notes.filter((note) => {
-    const contentMatch = `${note.title} ${stripHtml(note.content || "")}`
+  const filteredAds = ads.filter((ad) => { // ИЗМЕНЕНО: notes -> ads, note -> ad
+    // Ищем соответствие по заголовку, контенту или, возможно, цене/локации (если добавите в поиск)
+    const contentMatch = `${ad.title} ${stripHtml(ad.content || "")} ${ad.location || ""}` // ДОБАВЛЕНО: ad.location
       .toLowerCase()
       .includes(query.toLowerCase());
 
     // Фильтрация по тегам
     const tagMatch =
-      tagFilter === "Все" || (note.tags || []).includes(tagFilter);
+      tagFilter === "Все" || (ad.tags || []).includes(tagFilter); // ИЗМЕНЕНО: note -> ad
 
     return contentMatch && tagMatch;
   });
 
-  const totalPages = Math.ceil(filteredNotes.length / NOTES_PER_PAGE);
-  const startIndex = (currentPage - 1) * NOTES_PER_PAGE;
-  const paginatedNotes = filteredNotes.slice(
+  const totalPages = Math.ceil(filteredAds.length / ADS_PER_PAGE); // ИЗМЕНЕНО: NOTES_PER_PAGE -> ADS_PER_PAGE
+  const startIndex = (currentPage - 1) * ADS_PER_PAGE; // ИЗМЕНЕНО: NOTES_PER_PAGE -> ADS_PER_PAGE
+  const paginatedAds = filteredAds.slice( // ИЗМЕНЕНО: paginatedNotes -> paginatedAds
     startIndex,
-    startIndex + NOTES_PER_PAGE
+    startIndex + ADS_PER_PAGE // ИЗМЕНЕНО: NOTES_PER_PAGE -> ADS_PER_PAGE
   );
 
   const handlePageChange = (page) => {
@@ -121,18 +122,16 @@ const Dashboard = () => {
 
   // 💡 Функция для обработки клика по карточке
   const handleCardClick = (id) => {
-      // Здесь можно навигировать на страницу просмотра/деталей
-      // Если вы хотите, чтобы клик по карточке вел на просмотр (read-only)
-      // navigate(`/notes/${id}`); 
-      // А пока просто ведет на редактирование, как было в оригинале, или ничего не делает
-      navigate(`/edit-notes/${id}`); 
+      // Навигация на страницу просмотра объявления
+      // Используйте URL-адрес для просмотра (например, /ads/123)
+      navigate(`/ads/${id}`); // ИЗМЕНЕНО: /notes/ -> /ads/
   }
 
   // --- Сообщения о состоянии (Loading/Error) ---
   if (loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="flex items-center text-lg text-blue-600 dark:text-blue-400">
+        <div className="flex items-center text-lg text-teal-600 dark:text-teal-400"> {/* ИЗМЕНЕНО: blue -> teal */}
             <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             Загрузка каталога объявлений...
         </div>
@@ -153,7 +152,7 @@ const Dashboard = () => {
     <>
       <Toaster position="top-right" />
 
-      {notes.length === 0 ? (
+      {ads.length === 0 ? ( // ИЗМЕНЕНО: notes.length -> ads.length
         // 💡 Стиль для пустого состояния
         <div className="flex flex-col items-center justify-center min-h-[70vh] text-center bg-gray-50 dark:bg-gray-900 p-8">
           <FiGrid className="w-12 h-12 text-gray-400 dark:text-gray-600 mb-4" />
@@ -165,7 +164,7 @@ const Dashboard = () => {
           </p>
           <button
             onClick={() => navigate("/create")}
-            className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-full shadow-lg hover:bg-blue-700 transition"
+            className="flex items-center gap-2 bg-teal-600 text-white px-8 py-3 rounded-full shadow-lg hover:bg-teal-700 transition" // ИЗМЕНЕНО: blue -> teal
           >
             + Создать объявление
           </button>
@@ -181,7 +180,7 @@ const Dashboard = () => {
               {/* Кнопка "Создать" в верхней части */}
               <button
                 onClick={() => navigate("/create")}
-                className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-full shadow-md hover:bg-blue-700 transition"
+                className="flex items-center gap-2 bg-teal-600 text-white px-5 py-2 rounded-full shadow-md hover:bg-teal-700 transition" // ИЗМЕНЕНО: blue -> teal
               >
                 + Разместить
               </button>
@@ -200,7 +199,7 @@ const Dashboard = () => {
                 <label htmlFor="tag-filter" className="sr-only">Фильтр по категориям</label>
                 <select
                   id="tag-filter"
-                  className="w-full appearance-none px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-base shadow-sm"
+                  className="w-full appearance-none px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 text-base shadow-sm" // ИЗМЕНЕНО: focus:ring-blue-500 -> focus:ring-teal-500
                   value={tagFilter}
                   onChange={(e) => {
                     setTagFilter(e.target.value);
@@ -220,7 +219,7 @@ const Dashboard = () => {
             </div>
 
             {/* Отображение заметок */}
-            {filteredNotes.length === 0 ? (
+            {filteredAds.length === 0 ? ( // ИЗМЕНЕНО: filteredNotes -> filteredAds
               <div className="flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 mt-12 p-8 border border-dashed border-gray-400 dark:border-gray-600 rounded-xl">
                 <p className="text-xl mb-2">Объявления по вашему запросу не найдены.</p>
                 <p className="mb-4">Попробуйте использовать другие ключевые слова или сбросить фильтр категорий.</p>
@@ -228,19 +227,21 @@ const Dashboard = () => {
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
-                  {paginatedNotes.map((note) => (
-                    <NoteCard
-                      key={note._id}
-                      title={note.title}
-                      image={note.imageUrl}
-                      snippet={stripHtml(note.content)?.slice(0, 100) || ""}
-                      date={new Date(note.createdAt).toLocaleDateString()}
-                      tags={note.tags || []}
+                  {paginatedAds.map((ad) => ( // ИЗМЕНЕНО: paginatedNotes -> paginatedAds, note -> ad
+                    <AdCard // ИЗМЕНЕНО: NoteCard -> AdCard
+                      key={ad._id}
+                      title={ad.title}
+                      image={ad.imageUrl}
+                      descriptionSnippet={stripHtml(ad.content)?.slice(0, 100) || ""} // ИЗМЕНЕНО: snippet -> descriptionSnippet
+                      datePosted={new Date(ad.createdAt).toLocaleDateString()} // ИЗМЕНЕНО: date -> datePosted
+                      location={ad.location} // ДОБАВЛЕНО: location
+                      price={ad.price} // ДОБАВЛЕНО: price
+                      tags={ad.tags || []}
                       // 💡 Добавлена функция клика по карточке
-                      onCardClick={() => handleCardClick(note._id)} 
+                      onCardClick={() => handleCardClick(ad._id)} 
                       // Кнопки редактирования и удаления все равно нужны для действий
-                      onEdit={() => navigate(`/edit-notes/${note._id}`)}
-                      onDelete={() => handleDelete(note._id, note.title)}
+                      onEdit={() => navigate(`/edit-ad/${ad._id}`)} // ИЗМЕНЕНО: /edit-notes -> /edit-ad
+                      onDelete={() => handleDelete(ad._id, ad.title)}
                     />
                   ))}
                 </div>
@@ -264,8 +265,8 @@ const Dashboard = () => {
                         onClick={() => handlePageChange(i + 1)}
                         className={`w-10 h-10 rounded-full font-bold transition duration-200 ${
                           currentPage === i + 1
-                            ? "bg-blue-600 text-white shadow-md"
-                            : "bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-blue-200 dark:hover:bg-blue-900"
+                            ? "bg-teal-600 text-white shadow-md" // ИЗМЕНЕНО: blue -> teal
+                            : "bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-teal-200 dark:hover:bg-teal-900" // ИЗМЕНЕНО: blue -> teal
                         }`}
                       >
                         {i + 1}

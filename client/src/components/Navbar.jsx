@@ -30,7 +30,7 @@ const Navbar = () => {
             className="text-3xl cursor-pointer tracking-widest font-light text-teal-400 hover:text-teal-300 transition duration-300"
             onClick={() => navigate("/")}
           >
-            NOTE.APP
+            BOARD.APP {/* ИЗМЕНЕНО: Заметки -> Доска объявлений */}
           </div>
 
           {/* Навигация для десктопов */}
@@ -42,7 +42,7 @@ const Navbar = () => {
                   className="text-gray-300 hover:text-teal-400 border-b-2 border-transparent hover:border-teal-400 pb-1 transition duration-200 flex items-center gap-1"
                 >
                   <FiHome className="w-4 h-4" />
-                  Панель
+                  Мои объявления {/* ИЗМЕНЕНО: Панель -> Мои объявления */}
                 </Link>
                 
                 {/* Кнопка с новым стилем (контурная) */}
@@ -51,7 +51,7 @@ const Navbar = () => {
                   className="flex items-center gap-1 border border-teal-500 text-teal-400 px-3 py-1.5 rounded-full hover:bg-teal-500 hover:text-gray-800 transition duration-300 font-medium text-sm"
                 >
                   <FiPlusSquare className="w-4 h-4" />
-                  Новая заметка
+                  Новое объявление {/* ИЗМЕНЕНО: Новая заметка -> Новое объявление */}
                 </Link>
 
                 {/* Выпадающее меню */}
@@ -119,7 +119,7 @@ const Navbar = () => {
                 onClick={() => setMenuOpen(false)}
               >
                 <FiHome className="w-5 h-5" />
-                Панель инструментов
+                Мои объявления {/* ИЗМЕНЕНО: Панель инструментов -> Мои объявления */}
               </Link>
               <Link
                 to="/create"
@@ -128,7 +128,7 @@ const Navbar = () => {
                 onClick={() => setMenuOpen(false)}
               >
                 <FiPlusSquare className="w-5 h-5" />
-                + Новая заметка
+                + Новое объявление {/* ИЗМЕНЕНО: + Новая заметка -> + Новое объявление */}
               </Link>
               <button
                 onClick={handleLogout}

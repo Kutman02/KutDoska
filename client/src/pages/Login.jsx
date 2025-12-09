@@ -1,8 +1,8 @@
 // src/pages/Login.jsx
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom"; // Добавил Link
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { FiMail, FiLock, FiLogIn, FiAlertTriangle, FiCheckCircle } from "react-icons/fi"; // Новые иконки
+import { FiMail, FiLock, FiLogIn, FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -36,7 +36,7 @@ const Login = () => {
       setTimeout(() => {
         setModal({ show: false, message: "", success: false });
         navigate("/dashboard");
-      }, 1500); // Сократил таймер для быстрого перехода
+      }, 1500);
     } catch (err) {
       setModal({ show: true, message: err.message, success: false });
       setTimeout(() => setModal({ show: false, message: "", success: false }), 3000);
@@ -57,7 +57,7 @@ const Login = () => {
       )}
 
       {/* 2. Левая акцентная сторона (Декоративная) */}
-      <div className="hidden lg:flex w-full lg:w-1/2 h-screen items-center justify-center bg-sky-600 dark:bg-sky-800 p-12 relative overflow-hidden">
+      <div className="hidden lg:flex w-full lg:w-1/2 h-screen items-center justify-center bg-teal-600 dark:bg-teal-800 p-12 relative overflow-hidden">
         {/* Декоративные геометрические фигуры */}
         <div className="absolute inset-0 opacity-10">
             <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="currentColor" strokeWidth="1">
@@ -67,7 +67,7 @@ const Login = () => {
         </div>
         <div className="z-10 text-center">
             <h1 className="text-4xl font-extrabold text-white mb-4 tracking-wider">
-                NOTE.APP ВХОД
+                ADBOARD ВХОД
             </h1>
             <p className="text-white text-xl font-light">
                 Ваш безопасный портал для управления объявлениями.
@@ -81,7 +81,7 @@ const Login = () => {
             onSubmit={handleLogin}
             className="bg-white dark:bg-gray-800 p-8 sm:p-10 rounded-xl shadow-2xl w-full max-w-md border border-gray-100 dark:border-gray-700"
           >
-            <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-900 dark:text-white border-b pb-3 border-sky-400/50">
+            <h2 className="text-3xl font-extrabold mb-8 text-center text-gray-900 dark:text-white border-b pb-3 border-teal-400/50">
               Авторизация
             </h2>
             
@@ -91,7 +91,7 @@ const Login = () => {
               <input
                 type="email"
                 placeholder="Электронная почта"
-                className="w-full pl-10 pr-4 py-3 border-b-2 border-gray-300 dark:border-gray-700 focus:border-sky-500 rounded-none dark:bg-gray-700 dark:text-white focus:outline-none transition duration-200"
+                className="w-full pl-10 pr-4 py-3 border-b-2 border-gray-300 dark:border-gray-700 focus:border-teal-500 rounded-none dark:bg-gray-700 dark:text-white focus:outline-none transition duration-200"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -104,7 +104,7 @@ const Login = () => {
               <input
                 type="password"
                 placeholder="Пароль"
-                className="w-full pl-10 pr-4 py-3 border-b-2 border-gray-300 dark:border-gray-700 focus:border-sky-500 rounded-none dark:bg-gray-700 dark:text-white focus:outline-none transition duration-200"
+                className="w-full pl-10 pr-4 py-3 border-b-2 border-gray-300 dark:border-gray-700 focus:border-teal-500 rounded-none dark:bg-gray-700 dark:text-white focus:outline-none transition duration-200"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -115,7 +115,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-sky-600 text-white py-3 rounded-lg font-bold text-lg shadow-xl shadow-sky-500/30 hover:bg-sky-700 transition duration-300 transform hover:scale-[1.01]"
+              className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white py-3 rounded-lg font-bold text-lg shadow-xl shadow-teal-500/30 hover:bg-teal-700 transition duration-300 transform hover:scale-[1.01]"
             >
               <FiLogIn className="w-5 h-5" />
               {loading ? "Выполняется вход..." : "Войти в систему"}
@@ -124,7 +124,7 @@ const Login = () => {
             {/* Link to Register */}
             <p className="mt-6 text-center text-gray-600 dark:text-gray-400 text-sm">
                 Нет аккаунта?{" "}
-                <Link to="/register" className="text-sky-600 dark:text-sky-400 font-medium hover:underline transition">
+                <Link to="/register" className="text-teal-600 dark:text-teal-400 font-medium hover:underline transition">
                     Зарегистрироваться
                 </Link>
             </p>
