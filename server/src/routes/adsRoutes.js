@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  getAds,
+  getMyAds, // 💡 Используем getMyAds
   getAdById,
   createAd,
   updateAd,
@@ -15,18 +15,19 @@ const adsRouter = express.Router();
 // GET /api/ads/latest (Получение последних объявлений)
 adsRouter.route("/latest").get(getPublicAds);
 
-// 2. 🔒 ЛИЧНЫЕ МАРШРУТЫ (ТРЕБУЮТ АУТЕНТИФИКАЦИИ)
+// 2. 🔒 ЛИЧНЫЕ МАРШРУТЫ ПОЛЬЗОВАТЕЛЯ
+// GET /api/ads/my (Получение объявлений текущего пользователя)
+adsRouter.route("/my").get(protect, getMyAds); 
 
-// GET /api/ads (личные объявления пользователя) и POST /api/ads (создание)
-adsRouter.route("/").get(protect, getAds).post(protect, createAd);
+// 3. 🔒 УПРАВЛЕНИЕ ОБЪЯВЛЕНИЯМИ
+// POST /api/ads (создание)
+adsRouter.route("/").post(protect, createAd);
 
-// 3. 🔍 МАРШРУТ ДЛЯ ОДНОГО ОБЪЯВЛЕНИЯ
+// 4. 🔍 МАРШРУТ ДЛЯ ОДНОГО ОБЪЯВЛЕНИЯ
 adsRouter
   .route("/:id")
-  // ✅ ИСПРАВЛЕНО: УБРАН 'protect' для GET. Теперь контроллер getAdById 
-  // может обрабатывать публичные запросы (если объявление не черновик).
   .get(getAdById) 
-  .put(protect, updateAd) // 🔒 PUT остается защищенным
-  .delete(protect, deleteAd); // 🔒 DELETE остается защищенным
+  .put(protect, updateAd) 
+  .delete(protect, deleteAd); 
 
 export default adsRouter;

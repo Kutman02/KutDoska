@@ -1,4 +1,4 @@
-import Ad from "../models/Ad.js";
+import Ad from "../models/Ad.js"; // Убедитесь, что путь к вашей модели Ad корректен
 
 // 1. 🌐 Получить публичные объявления (БЕЗ аутентификации)
 export const getPublicAds = async (req, res) => {
@@ -15,16 +15,21 @@ export const getPublicAds = async (req, res) => {
   }
 };
 
-// 2. 🔒 Получить личные объявления пользователя (Требует аутентификации)
-export const getAds = async (req, res) => {
-  // Ищем только объявления текущего пользователя
-  const ads = await Ad.find({ user: req.user._id }).sort({ createdAt: -1 });
-  res.json(ads);
+// 2. 🔒 Получить личные объявления пользователя (Требует аутентификации - для /api/ads/my)
+export const getMyAds = async (req, res) => { 
+  try {
+    // Ищем только объявления текущего пользователя по его ID
+    const ads = await Ad.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.json(ads);
+  } catch (err) {
+     console.error("Ошибка при получении личных объявлений:", err);
+     // В случае ошибки (например, с БД) возвращаем 500
+     res.status(500).json({ message: "Ошибка сервера при загрузке ваших объявлений." });
+  }
 };
 
-// 3. 🔍 ОБНОВЛЕНО: Получить объявление по ID (поддержка публичного доступа)
+// 3. 🔍 Получить объявление по ID (поддержка публичного и приватного доступа)
 export const getAdById = async (req, res) => {
-  console.log("Fetching ad with ID:", req.params.id);
   if (!req.params.id) {
     return res.status(400).json({ message: "Ad ID is required" });
   }
@@ -32,8 +37,10 @@ export const getAdById = async (req, res) => {
   const { id } = req.params;
   let findQuery = { _id: id };
 
-  // Если пользователь авторизован, ищем объявление, принадлежащее ему (приватный доступ)
+  // Если req.user существует (даже если мидлвар protect использовался как опциональный),
+  // мы пытаемся найти объявление, принадлежащее пользователю.
   if (req.user && req.user._id) {
+    // Если пользователь авторизован, он может видеть даже свои черновики
     findQuery.user = req.user._id;
   } else {
     // Если пользователь НЕ авторизован (публичный доступ),
@@ -41,14 +48,18 @@ export const getAdById = async (req, res) => {
     findQuery.isDraft = { $ne: true };
   }
   
-  const ad = await Ad.findOne(findQuery); 
+  try {
+    const ad = await Ad.findOne(findQuery); 
 
-  if (ad) res.json(ad);
-  // Обновленное сообщение об ошибке
-  else res.status(404).json({ message: "Объявление не найдено, является черновиком или не принадлежит вам." }); 
+    if (ad) res.json(ad);
+    else res.status(404).json({ message: "Объявление не найдено, является черновиком или не принадлежит вам." }); 
+  } catch (err) {
+    console.error("Ошибка при получении объявления по ID:", err);
+    res.status(500).json({ message: "Ошибка сервера при получении объявления." });
+  }
 };
 
-// 4. 📝 Создать новое объявление
+// 4. 📝 Создать новое объявление (Требует аутентификации)
 export const createAd = async (req, res) => {
   const { title, content, imageUrl, tags, price, location, isDraft = false } = req.body;
   
@@ -56,48 +67,66 @@ export const createAd = async (req, res) => {
     return res.status(400).json({ message: "Title, content, and price are required" });
   }
   
-  const ad = await Ad.create({
-    title,
-    content,
-    price,
-    location,
-    user: req.user._id,
-    imageUrl,
-    tags: tags,
-    isDraft: isDraft,
-  });
-  res.status(201).json(ad);
+  try {
+    const ad = await Ad.create({
+      title,
+      content,
+      price,
+      location,
+      user: req.user._id, // ID пользователя берется из токена (от protect)
+      imageUrl,
+      tags: tags,
+      isDraft: isDraft,
+    });
+    res.status(201).json(ad);
+  } catch (err) {
+    console.error("Ошибка при создании объявления:", err);
+    res.status(500).json({ message: "Ошибка сервера при создании объявления." });
+  }
 };
 
-// 5. ✍️ Обновить объявление
+// 5. ✍️ Обновить объявление (Требует аутентификации и владения)
 export const updateAd = async (req, res) => {
   const { id } = req.params;
   const _id = id;
 
   const { title, content, imageUrl, tags, price, location, isDraft } = req.body; 
 
-  // Находим объявление, принадлежащее текущему пользователю
-  const ad = await Ad.findOne({ _id, user: req.user._id });
+  try {
+    // Находим объявление, принадлежащее текущему пользователю
+    const ad = await Ad.findOne({ _id, user: req.user._id });
 
-  if (!ad) return res.status(404).json({ message: "Ad not found" });
+    if (!ad) return res.status(404).json({ message: "Объявление не найдено или не принадлежит вам." });
 
-  ad.title = title !== undefined ? title : ad.title;
-  ad.content = content !== undefined ? content : ad.content;
-  ad.imageUrl = imageUrl !== undefined ? imageUrl : ad.imageUrl;
-  ad.tags = tags !== undefined ? tags : ad.tags;
-  ad.price = price !== undefined ? price : ad.price;
-  ad.location = location !== undefined ? location : ad.location;
-  ad.isDraft = isDraft !== undefined ? isDraft : ad.isDraft;
+    // Обновляем поля
+    ad.title = title !== undefined ? title : ad.title;
+    ad.content = content !== undefined ? content : ad.content;
+    ad.imageUrl = imageUrl !== undefined ? imageUrl : ad.imageUrl;
+    ad.tags = tags !== undefined ? tags : ad.tags;
+    ad.price = price !== undefined ? price : ad.price;
+    ad.location = location !== undefined ? location : ad.location;
+    ad.isDraft = isDraft !== undefined ? isDraft : ad.isDraft;
 
-  const updated = await ad.save();
-  res.json(updated);
+    const updated = await ad.save();
+    res.json(updated);
+  } catch (err) {
+    console.error("Ошибка при обновлении объявления:", err);
+    res.status(500).json({ message: "Ошибка сервера при обновлении объявления." });
+  }
 };
 
-// 6. 🗑️ Удалить объявление
+// 6. 🗑️ Удалить объявление (Требует аутентификации и владения)
 export const deleteAd = async (req, res) => {
-  const ad = await Ad.findOne({ _id: req.params.id, user: req.user._id });
-  if (!ad) return res.status(404).json({ message: "Ad not found" });
+  try {
+    // Находим объявление, принадлежащее текущему пользователю
+    const ad = await Ad.findOne({ _id: req.params.id, user: req.user._id });
+    
+    if (!ad) return res.status(404).json({ message: "Объявление не найдено или не принадлежит вам." });
 
-  await ad.deleteOne();
-  res.json({ message: "Ad deleted" });
+    await ad.deleteOne();
+    res.json({ message: "Объявление успешно удалено" });
+  } catch (err) {
+    console.error("Ошибка при удалении объявления:", err);
+    res.status(500).json({ message: "Ошибка сервера при удалении объявления." });
+  }
 };

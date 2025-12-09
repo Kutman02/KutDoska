@@ -4,23 +4,75 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import toast, { Toaster } from "react-hot-toast";
-import { FiSave, FiTag, FiImage, FiX, FiDollarSign, FiMapPin } from "react-icons/fi"; // ДОБАВЛЕНО: FiDollarSign, FiMapPin
+import { FiSave, FiTag, FiImage, FiX, FiDollarSign, FiMapPin, FiMenu } from "react-icons/fi"; // Добавлена FiMenu
 
-// Классы для стилизации кнопок Tiptap
+// Классы для стилизации кнопок Tiptap (Обновлено для Soft UI)
 const TiptapButtonClass = (isActive) => 
-  `p-2 rounded-md text-sm font-medium transition duration-200 
+  `p-2 rounded-lg text-sm font-medium transition duration-200 shadow-md 
    ${isActive 
-     ? "bg-teal-600 text-white shadow-md hover:bg-teal-700" // ИЗМЕНЕНО: lime -> teal
-     : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+     ? "bg-teal-500 text-white hover:bg-teal-600 shadow-teal-300/50" 
+     : "bg-white text-gray-700 hover:bg-gray-100 shadow-gray-200"
    }`;
+  
+// Компонент меню редактора (обязателен для Tiptap)
+const TiptapToolbar = ({ editor }) => {
+    if (!editor) return null;
 
-const EditAd = () => { // ИЗМЕНЕНО: EditNotes -> EditAd
+    return (
+        <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                className={TiptapButtonClass(editor.isActive('heading', { level: 1 }))}
+            >
+                H1
+            </button>
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                className={TiptapButtonClass(editor.isActive('heading', { level: 2 }))}
+            >
+                H2
+            </button>
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleBold().run()}
+                className={TiptapButtonClass(editor.isActive('bold'))}
+            >
+                B
+            </button>
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+                className={TiptapButtonClass(editor.isActive('italic'))}
+            >
+                I
+            </button>
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                className={TiptapButtonClass(editor.isActive('bulletList'))}
+            >
+                • List
+            </button>
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                className={TiptapButtonClass(editor.isActive('orderedList'))}
+            >
+                # List
+            </button>
+        </div>
+    );
+};
+
+const EditAd = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [title, setTitle] = useState("");
-  const [price, setPrice] = useState(""); // ДОБАВЛЕНО: Цена
-  const [location, setLocation] = useState(""); // ДОБАВЛЕНО: Локация
+  const [price, setPrice] = useState("");
+  const [location, setLocation] = useState("");
   const [tags, setTags] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [activeTab, setActiveTab] = useState("content"); 
@@ -30,39 +82,39 @@ const EditAd = () => { // ИЗМЕНЕНО: EditNotes -> EditAd
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder: "Введите подробное описание товара или услуги...", // ИЗМЕНЕНО: Заметка -> Описание
+        placeholder: "Введите подробное описание товара или услуги...",
       }),
     ],
     content: "",
     editorProps: {
       attributes: {
-        class: "prose dark:prose-invert max-w-none focus:outline-none p-4", 
+        // Стиль для светлого UI
+        class: "prose max-w-none focus:outline-none p-4 text-gray-800 min-h-[400px]", 
       },
     },
   });
 
   // Fetch existing ad
   useEffect(() => {
-    const fetchAd = async () => { // ИЗМЕНЕНО: fetchNote -> fetchAd
+    const fetchAd = async () => {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        // ИЗМЕНЕНО: /api/notes/ -> /api/ads/
         const res = await fetch(`http://localhost:8080/api/ads/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!res.ok) throw new Error("Failed to fetch advertisement"); // ИЗМЕНЕНО: note -> advertisement
+        if (!res.ok) throw new Error("Failed to fetch advertisement");
 
         const data = await res.json();
         setTitle(data.title || "");
-        setPrice(data.price?.toString() || ""); // ДОБАВЛЕНО: Загрузка цены
-        setLocation(data.location || ""); // ДОБАВЛЕНО: Загрузка локации
+        setPrice(data.price?.toString() || "");
+        setLocation(data.location || "");
         setTags(data.tags?.join(", ") || "");
         setImageUrl(data.imageUrl || "");
         editor?.commands.setContent(data.content || "");
       } catch (err) {
-        toast.error("Не удалось загрузить объявление для редактирования"); // ИЗМЕНЕНО: заметку -> объявление
+        toast.error("Не удалось загрузить объявление для редактирования");
         console.error("Fetch error:", err.message);
       } finally {
         setLoading(false);
@@ -81,7 +133,6 @@ const EditAd = () => { // ИЗМЕНЕНО: EditNotes -> EditAd
 
     try {
       setLoading(true);
-      // ИЗМЕНЕНО: URL, если нужно, иначе оставляем как заглушку
       const res = await fetch("http://localhost:8080/api/upload/ad-image", { 
         method: "POST",
         body: formData,
@@ -104,7 +155,7 @@ const EditAd = () => { // ИЗМЕНЕНО: EditNotes -> EditAd
   const handleUpdate = async (e) => {
     e.preventDefault();
 
-    if (!title.trim() || !editor?.getText().trim() || !price.trim()) { // ДОБАВЛЕНО: Проверка цены
+    if (!title.trim() || !editor?.getText().trim() || !price.trim()) {
         toast.error("Заголовок, Цена и Описание не могут быть пустыми.");
         return;
     }
@@ -117,7 +168,6 @@ const EditAd = () => { // ИЗМЕНЕНО: EditNotes -> EditAd
       setLoading(true);
       const token = localStorage.getItem("token");
 
-      // ИЗМЕНЕНО: /api/notes/ -> /api/ads/
       const res = await fetch(`http://localhost:8080/api/ads/${id}`, {
         method: "PUT",
         headers: {
@@ -129,75 +179,78 @@ const EditAd = () => { // ИЗМЕНЕНО: EditNotes -> EditAd
             content, 
             tags: tagArray, 
             imageUrl, 
-            price: parsedPrice, // ДОБАВЛЕНО: цена
-            location // ДОБАВЛЕНО: локация
+            price: parsedPrice,
+            location
         }),
       });
 
       if (!res.ok) throw new Error("Failed to update advertisement");
 
-      toast.success("Объявление успешно обновлено!"); // ИЗМЕНЕНО: Заметка -> Объявление
+      toast.success("Объявление успешно обновлено!");
       setTimeout(() => navigate("/dashboard"), 1500);
     } catch (err) {
-      toast.error("Ошибка обновления объявления"); // ИЗМЕНЕНО: обновления -> обновления объявления
+      toast.error("Ошибка обновления объявления");
       console.error("Update error:", err.message);
     } finally {
         setLoading(false);
     }
   };
 
-  // --- HTML для вкладки "Метаданные/Медиа" ---
+  // --- HTML для вкладки "Метаданные/Медиа" (СТИЛЬ SOFT UI) ---
   const MetadataTab = (
-    <div className="space-y-4 p-4">
+    <div className="space-y-6 p-6">
         
-        {/* Цена и Локация (ДОБАВЛЕНО) */}
+        {/* Цена и Локация */}
         <div className="flex flex-col sm:flex-row gap-4">
             {/* Поле Цены */}
-            <div className="flex items-center gap-3 border p-3 rounded-lg dark:border-gray-600 bg-gray-50 dark:bg-gray-700 w-full sm:w-1/2">
-                <FiDollarSign className="w-5 h-5 text-teal-600 dark:text-teal-400" /> {/* ИЗМЕНЕНО: Цвет */}
+            <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl w-full sm:w-1/2 shadow-inner">
+                <FiDollarSign className="w-5 h-5 text-teal-600" />
                 <input
                 type="number"
                 placeholder="Цена (в сомах)"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                className="w-full bg-transparent dark:text-gray-200 focus:outline-none appearance-none"
+                className="w-full bg-transparent text-gray-800 focus:outline-none appearance-none"
                 required
                 />
             </div>
             {/* Поле Локации */}
-            <div className="flex items-center gap-3 border p-3 rounded-lg dark:border-gray-600 bg-gray-50 dark:bg-gray-700 w-full sm:w-1/2">
-                <FiMapPin className="w-5 h-5 text-teal-600 dark:text-teal-400" /> {/* ИЗМЕНЕНО: Цвет */}
+            <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl w-full sm:w-1/2 shadow-inner">
+                <FiMapPin className="w-5 h-5 text-teal-600" />
                 <input
                 type="text"
                 placeholder="Город или адрес"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="w-full bg-transparent dark:text-gray-200 focus:outline-none"
+                className="w-full bg-transparent text-gray-800 focus:outline-none"
                 />
             </div>
         </div>
 
-
         {/* Tags Input */}
-        <div className="flex items-center gap-3 border p-3 rounded-lg dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
-            <FiTag className="w-5 h-5 text-teal-600 dark:text-teal-400" /> {/* ИЗМЕНЕНО: Цвет */}
+        <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl shadow-inner">
+            <FiTag className="w-5 h-5 text-teal-600" />
             <input
                 type="text"
-                placeholder="Ключевые слова (через запятую)" // ИЗМЕНЕНО: Текст заглушка
+                placeholder="Ключевые слова (через запятую)"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                className="w-full bg-transparent dark:text-gray-200 focus:outline-none"
+                className="w-full bg-transparent text-gray-800 focus:outline-none"
             />
         </div>
 
-        {/* Image Upload */}
-        <div className="border border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-4">
+        {/* Image Upload/Preview */}
+        <div className="border-2 border-dashed border-gray-200 bg-white rounded-xl p-4 shadow-md">
             <label 
                 htmlFor="image-upload" 
-                className={`flex items-center justify-center w-full p-3 rounded-lg font-medium cursor-pointer transition duration-200 
-                          ${imageUrl ? 'bg-teal-100 dark:bg-teal-900 text-teal-700 border border-teal-500' : 'bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'}`}> {/* ИЗМЕНЕНО: lime -> teal */}
+                // Стиль кнопки загрузки Soft UI
+                className={`flex items-center justify-center w-full p-3 rounded-xl font-bold cursor-pointer transition duration-200 
+                          shadow-lg hover:shadow-xl
+                          ${imageUrl 
+                            ? 'bg-teal-100 text-teal-700 border border-teal-500 shadow-teal-200' 
+                            : 'bg-teal-500 text-white hover:bg-teal-600 shadow-teal-400/50'}`}>
                 <FiImage className="w-5 h-5 mr-2" />
-                {imageUrl ? "Фото товара загружено (Нажмите для смены)" : "Загрузить новое фото товара"} {/* ИЗМЕНЕНО: Текст */}
+                {imageUrl ? "Фото товара загружено (Нажмите для смены)" : "Загрузить новое фото товара"}
                 <input
                     id="image-upload"
                     type="file"
@@ -209,16 +262,16 @@ const EditAd = () => { // ИЗМЕНЕНО: EditNotes -> EditAd
 
             {/* Image Preview */}
             {imageUrl && (
-                <div className="relative mt-4">
+                <div className="relative mt-4 bg-gray-50 p-2 rounded-lg shadow-inner">
                     <img
                         src={imageUrl}
-                        alt="Ad Cover" // ИЗМЕНЕНО: Note Cover -> Ad Cover
+                        alt="Ad Cover"
                         className="w-full max-h-64 object-contain rounded-lg"
                     />
                     <button 
                         type="button" 
                         onClick={() => setImageUrl("")}
-                        className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full text-xs hover:bg-red-700 transition flex items-center justify-center w-6 h-6"
+                        className="absolute top-4 right-4 bg-red-500 text-white p-2 rounded-full font-bold text-sm hover:bg-red-600 transition shadow-lg"
                         title="Удалить изображение"
                     >
                         <FiX className="w-4 h-4" />
@@ -231,50 +284,55 @@ const EditAd = () => { // ИЗМЕНЕНО: EditNotes -> EditAd
 
   if (!editor || loading) {
     return (
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-            <div className="flex items-center text-lg text-teal-600 dark:text-teal-400"> {/* ИЗМЕНЕНО: lime -> teal */}
+        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50">
+            <div className="flex items-center text-lg text-teal-600">
                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                {loading ? "Загрузка данных объявления..." : "Инициализация редактора..."} {/* ИЗМЕНЕНО: заметки -> объявления */}
+                {loading ? "Загрузка данных объявления..." : "Инициализация редактора..."}
             </div>
         </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-8 bg-gray-100 dark:bg-gray-950">
+    <div className="min-h-screen p-4 sm:p-8 bg-gray-50"> {/* Светлый фон страницы */}
       <Toaster position="top-right" />
-      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden">
+      {/* Главный контейнер Soft UI */}
+      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl shadow-gray-300/60 overflow-hidden">
         
         {/* Заголовок Рабочей Области */}
-        <header className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">
-                Редактирование: <span className="text-teal-600 dark:text-teal-400">{title || "Безымянное объявление"}</span> {/* ИЗМЕНЕНО: lime -> teal, заметка -> объявление */}
+        <header className="p-4 border-b border-gray-100 flex items-center gap-3">
+            <FiMenu className="w-6 h-6 text-teal-500" />
+            <h2 className="text-xl font-extrabold text-gray-900">
+                Редактирование: <span className="text-teal-600">{title || "Безымянное объявление"}</span>
             </h2>
         </header>
 
         <form onSubmit={handleUpdate}>
             
-            {/* Поле Заголовка */}
-            <div className="p-4 border-b dark:border-gray-700">
+            {/* Поле Заголовка (В стиле Soft UI) */}
+            <div className="p-4 border-b border-gray-100">
                 <input
                     type="text"
-                    placeholder="Заголовок объявления" // ИЗМЕНЕНО: заметки -> объявления
+                    placeholder="Заголовок объявления"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-2 text-2xl font-bold bg-transparent dark:text-white focus:outline-none"
+                    // Стиль, как в CreateAd: легкий фон, скругление, фокус-кольцо
+                    className="w-full px-4 py-3 text-2xl font-bold bg-gray-100 rounded-xl border border-transparent 
+                               focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white 
+                               transition duration-200 shadow-inner placeholder-gray-500"
                     required
                 />
             </div>
 
-            {/* Навигация по вкладкам */}
-            <div className="flex border-b border-gray-200 dark:border-gray-700">
+            {/* Навигация по вкладкам (Стиль Soft UI) */}
+            <div className="flex border-b border-gray-100">
                 <button
                     type="button"
                     onClick={() => setActiveTab("content")}
                     className={`px-6 py-3 text-sm font-semibold transition duration-200 
                         ${activeTab === "content" 
-                            ? "border-b-4 border-teal-500 text-teal-600 dark:text-teal-400" // ИЗМЕНЕНО: lime -> teal
-                            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
+                            ? "border-b-4 border-teal-500 text-teal-600 bg-teal-50"
+                            : "text-gray-600 hover:bg-gray-100"}`}
                 >
                     Описание (Содержание)
                 </button>
@@ -283,8 +341,8 @@ const EditAd = () => { // ИЗМЕНЕНО: EditNotes -> EditAd
                     onClick={() => setActiveTab("media")}
                     className={`px-6 py-3 text-sm font-semibold transition duration-200 
                         ${activeTab === "media" 
-                            ? "border-b-4 border-teal-500 text-teal-600 dark:text-teal-400" // ИЗМЕНЕНО: lime -> teal
-                            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
+                            ? "border-b-4 border-teal-500 text-teal-600 bg-teal-50"
+                            : "text-gray-600 hover:bg-gray-100"}`}
                 >
                     Цена / Медиа / Категории
                 </button>
@@ -294,32 +352,12 @@ const EditAd = () => { // ИЗМЕНЕНО: EditNotes -> EditAd
             <div className="p-0">
                 {activeTab === "content" && (
                     <div className="space-y-4">
-                        {/* Toolbar (ИЗМЕНЕН ЦВЕТ) */}
-                        {editor && (
-                            <div className="p-4 bg-gray-50 dark:bg-gray-700 shadow-inner flex gap-2 flex-wrap border-b dark:border-gray-600">
-                                {/* Кнопки используют TiptapButtonClass, который уже изменен на teal */}
-                                {[
-                                    ["Жирный", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold")],
-                                    ["Курсив", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic")],
-                                    ["H1", () => editor.chain().focus().toggleHeading({ level: 1 }).run(), editor.isActive("heading", { level: 1 })],
-                                    ["H2", () => editor.chain().focus().toggleHeading({ level: 2 }).run(), editor.isActive("heading", { level: 2 })],
-                                    ["•Список", () => editor.chain().focus().toggleBulletList().run(), editor.isActive("bulletList")],
-                                    ["</>", () => editor.chain().focus().toggleCodeBlock().run(), editor.isActive("codeBlock")],
-                                ].map(([label, handler, isActive]) => (
-                                    <button
-                                        key={label}
-                                        type="button"
-                                        onClick={handler}
-                                        className={TiptapButtonClass(isActive)}
-                                    >
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-
+                        {/* Editor Toolbar (Soft UI) */}
+                        <div className="bg-white rounded-t-xl border-b border-gray-200 shadow-inner">
+                            <TiptapToolbar editor={editor} />
+                        </div>
                         {/* Editor Content */}
-                        <div className="bg-white dark:bg-gray-800 min-h-[400px]">
+                        <div className="bg-white min-h-[400px]">
                             <EditorContent editor={editor} />
                         </div>
                     </div>
@@ -328,15 +366,16 @@ const EditAd = () => { // ИЗМЕНЕНО: EditNotes -> EditAd
                 {activeTab === "media" && MetadataTab}
             </div>
 
-            {/* Кнопка Сохранения (ИЗМЕНЕН ЦВЕТ) */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+            {/* Кнопка Сохранения (Акцентная Soft UI) */}
+            <div className="p-6 border-t border-gray-100 bg-gray-50">
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white px-6 py-3 font-bold rounded-lg shadow-lg hover:bg-teal-700 transition disabled:bg-gray-400" // ИЗМЕНЕНО: lime -> teal
+                    className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white px-6 py-3 font-bold rounded-2xl 
+                               shadow-xl shadow-teal-400/50 hover:bg-teal-700 transition duration-300 transform hover:-translate-y-1 disabled:opacity-50"
                 >
                     <FiSave className="w-5 h-5" />
-                    {loading ? "Сохранение..." : "Сохранить объявление"} {/* ИЗМЕНЕНО: изменения -> объявление */}
+                    {loading ? "Сохранение..." : "Сохранить объявление"}
                 </button>
             </div>
         </form>

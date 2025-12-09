@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import AdCard from "../components/AdCard"; 
 import toast, { Toaster } from "react-hot-toast";
 import { AuthContext } from "../context/AuthContext"; 
-import { FiGlobe, FiLogIn, FiLoader, FiBookOpen } from "react-icons/fi"; 
+import { FiGlobe, FiLogIn, FiLoader, FiBookOpen, FiZap } from "react-icons/fi"; // FiZap для акцента
 
 const PublicHome = () => {
   const [publicAds, setPublicAds] = useState([]);
@@ -43,7 +43,7 @@ const PublicHome = () => {
     fetchPublicAds();
   }, []); 
 
-  // 🗑️ Обработчик удаления объявления
+  // 🗑️ Обработчик удаления объявления (без изменений)
   const handleDelete = async (adId) => {
     if (!window.confirm("Вы уверены, что хотите удалить это объявление?")) return;
 
@@ -79,9 +79,10 @@ const PublicHome = () => {
   // 2. ⏳ СОСТОЯНИЯ ЗАГРУЗКИ И ОТСУТСТВИЯ ОБЪЯВЛЕНИЙ
   if (loading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center bg-white dark:bg-gray-950">
-        <FiLoader className="w-8 h-8 text-teal-500 animate-spin mb-4" />
-        <p className="text-xl text-gray-700 dark:text-gray-300">
+      // Контейнер загрузки Soft UI
+      <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center bg-gray-50">
+        <FiLoader className="w-8 h-8 text-teal-600 animate-spin mb-4" />
+        <p className="text-xl text-gray-700">
             Загрузка последних объявлений...
         </p>
       </div>
@@ -90,20 +91,23 @@ const PublicHome = () => {
   
   if (publicAds.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center bg-gradient-to-br from-teal-50 to-teal-100 dark:from-gray-900 dark:to-gray-800 p-8">
-        <FiBookOpen className="w-12 h-12 text-teal-500 mb-4" />
-        <h1 className="text-3xl font-bold mb-4 text-gray-800 dark:text-white">
+      // Пустое состояние Soft UI
+      <div className="flex flex-col items-center justify-center min-h-[70vh] text-center bg-gray-50 p-8">
+        <FiBookOpen className="w-16 h-16 text-teal-400 mb-4 shadow-md rounded-full p-2 bg-white" />
+        <h1 className="text-3xl font-bold mb-4 text-gray-800">
             Лента пока пуста
         </h1>
-        <p className="text-xl mb-6 text-gray-600 dark:text-gray-400">
+        <p className="text-xl mb-8 text-gray-600">
             Опубликуйте первое объявление или войдите для просмотра своих.
         </p>
         <button
           onClick={() => navigate("/login")}
-          className="flex items-center gap-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:from-teal-600 hover:to-teal-700 transition transform hover:-translate-y-0.5"
+          // Акцентная кнопка Soft UI
+          className="flex items-center gap-2 bg-teal-600 text-white px-8 py-4 rounded-2xl text-lg font-semibold 
+                     shadow-xl shadow-teal-400/50 hover:bg-teal-700 transition transform hover:-translate-y-1"
         >
           <FiLogIn className="w-5 h-5" />
-          Войти
+          Войти в систему
         </button>
       </div>
     );
@@ -113,17 +117,18 @@ const PublicHome = () => {
   return (
     <>
       <Toaster position="top-right" />
-      <div className="min-h-[calc(100vh-4rem)] p-8 bg-gradient-to-br from-teal-50 to-teal-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Мягкий фон для ленты */}
+      <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-8 bg-gray-50">
         <div className="max-w-screen-xl mx-auto py-8">
           
-          {/* 💡 Заголовок */}
+          {/* 💡 Заголовок (Soft UI) */}
           <header className="text-center mb-12">
-            <FiGlobe className="w-8 h-8 text-teal-500 mx-auto mb-2" />
-            <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-wide">
+            <FiZap className="w-10 h-10 text-teal-600 mx-auto mb-3" />
+            <h1 className="text-4xl font-extrabold text-gray-900 mb-2 tracking-wide">
                 Общедоступная Лента Объявлений
             </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-                Последние объявления со всего мира.
+            <p className="text-lg text-gray-600">
+                Последние публичные предложения.
             </p>
           </header>
 
@@ -143,11 +148,12 @@ const PublicHome = () => {
                   key={ad._id}
                   title={ad.title}
                   image={ad.imageUrl} 
-                  snippet={stripHtml(ad.content)?.slice(0, 100) || ""} 
-                  date={new Date(ad.createdAt).toLocaleDateString()}
+                  // Убедимся, что мы передаем `descriptionSnippet` (как в Dashboard)
+                  descriptionSnippet={stripHtml(ad.content)?.slice(0, 100) || ""} 
+                  datePosted={new Date(ad.createdAt).toLocaleDateString('ru-RU')}
                   tags={ad.tags || []}
-                  price={ad.price} // ✅ ПЕРЕДАЕМ ЦЕНУ В AdCard
-                  location={ad.location} // ✅ ПЕРЕДАЕМ МЕСТОПОЛОЖЕНИЕ В AdCard
+                  price={ad.price}
+                  location={ad.location}
                   
                   onCardClick={cardClickHandler} 
                   

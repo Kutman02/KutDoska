@@ -1,35 +1,35 @@
-// src/components/CreateAd.jsx (Переименован из CreateNote.jsx)
+// src/components/CreateAd.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { FiImage, FiTag, FiLock, FiUnlock, FiSend, FiDollarSign, FiMapPin } from "react-icons/fi"; // Новые иконки
+import { FiImage, FiTag, FiLock, FiUnlock, FiSend, FiDollarSign, FiMapPin } from "react-icons/fi";
 
-// Классы для стилизации кнопок Tiptap
+// Классы для стилизации кнопок Tiptap (Обновлено для Soft UI)
 const TiptapButtonClass = (isActive) => 
-  `p-2 rounded-lg text-sm font-medium transition duration-200 
+  `p-2 rounded-lg text-sm font-medium transition duration-200 shadow-md 
    ${isActive 
-     ? "bg-teal-600 text-white shadow-md hover:bg-teal-700" // ИЗМЕНЕНО: purple -> teal
-     : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+     ? "bg-teal-500 text-white hover:bg-teal-600 shadow-teal-300/50" 
+     : "bg-white text-gray-700 hover:bg-gray-100 shadow-gray-200"
    }`;
 
-const CreateAd = () => { // ИЗМЕНЕНО: CreateNote -> CreateAd
+const CreateAd = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState(""); 
-  const [price, setPrice] = useState(""); // ДОБАВЛЕНО: Поле для цены
-  const [location, setLocation] = useState(""); // ДОБАВЛЕНО: Поле для локации
+  const [price, setPrice] = useState("");
+  const [location, setLocation] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isPublic, setIsPublic] = useState(true); // Объявления по умолчанию публичные
+  const [isPublic, setIsPublic] = useState(true);
 
   const editor = useEditor({
     extensions: [StarterKit],
-    content: "<p>Введите подробное описание товара или услуги. Укажите состояние, характеристики и условия сделки...</p>", // ИЗМЕНЕНО: Текст заглушка
+    content: "<p>Введите подробное описание товара или услуги. Укажите состояние, характеристики и условия сделки...</p>",
     editorProps: {
       attributes: {
-        // Добавляем класс для стилизации содержимого редактора
-        class: "prose dark:prose-invert max-w-none focus:outline-none p-4", 
+        // Убрана темная тема, добавлены стили для светлого фона
+        class: "prose max-w-none focus:outline-none p-4 text-gray-800 min-h-[250px]", 
       },
     },
   });
@@ -41,7 +41,6 @@ const CreateAd = () => { // ИЗМЕНЕНО: CreateNote -> CreateAd
     formData.append("file", selectedFile);
 
     try {
-      // Имитация загрузки
       setLoading(true); 
       // Адаптируйте URL для загрузки изображений объявлений, если нужно
       const res = await fetch("http://localhost:8080/api/upload/ad-image", {
@@ -64,7 +63,7 @@ const CreateAd = () => { // ИЗМЕНЕНО: CreateNote -> CreateAd
     e.preventDefault();
     const content = editor?.getText();
 
-    if (!title.trim() || !content.trim() || !price.trim()) { // ДОБАВЛЕНО: Проверка цены
+    if (!title.trim() || !content.trim() || !price.trim()) {
       alert("Пожалуйста, заполните Заголовок, Цену и Описание.");
       return;
     }
@@ -82,7 +81,6 @@ const CreateAd = () => { // ИЗМЕНЕНО: CreateNote -> CreateAd
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
 
-      // ИЗМЕНЕНО: URL на создание объявления
       const response = await fetch(
         "http://localhost:8080/api/ads",
         {
@@ -93,9 +91,9 @@ const CreateAd = () => { // ИЗМЕНЕНО: CreateNote -> CreateAd
           },
           body: JSON.stringify({
             title,
-            content,
-            price: parseFloat(price), // Отправляем цену как число
-            location, // ДОБАВЛЕНО: локация
+            content: editor.getHTML(), // Используем HTML контент
+            price: parseFloat(price),
+            location,
             imageUrl,
             tags: tagArray,
             isPublic, 
@@ -105,7 +103,7 @@ const CreateAd = () => { // ИЗМЕНЕНО: CreateNote -> CreateAd
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Не удалось создать объявление."); // ИЗМЕНЕНО: Заметка -> Объявление
+        throw new Error(errorData.message || "Не удалось создать объявление.");
       }
 
       navigate("/dashboard");
@@ -116,135 +114,171 @@ const CreateAd = () => { // ИЗМЕНЕНО: CreateNote -> CreateAd
       setLoading(false);
     }
   };
+  
+  // Компонент меню редактора (обязателен для Tiptap)
+  const TiptapToolbar = ({ editor }) => {
+    if (!editor) return null;
+
+    return (
+        <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                className={TiptapButtonClass(editor.isActive('heading', { level: 1 }))}
+            >
+                H1
+            </button>
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                className={TiptapButtonClass(editor.isActive('heading', { level: 2 }))}
+            >
+                H2
+            </button>
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleBold().run()}
+                className={TiptapButtonClass(editor.isActive('bold'))}
+            >
+                B
+            </button>
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+                className={TiptapButtonClass(editor.isActive('italic'))}
+            >
+                I
+            </button>
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                className={TiptapButtonClass(editor.isActive('bulletList'))}
+            >
+                • List
+            </button>
+            <button
+                type="button"
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                className={TiptapButtonClass(editor.isActive('orderedList'))}
+            >
+                # List
+            </button>
+        </div>
+    );
+  };
 
   return (
-    // 💡 Измененный фон: purple-50 -> teal-50
-    <div className="min-h-screen p-8 bg-teal-50 dark:bg-gray-950">
+    // Общий фон страницы
+    <div className="min-h-screen p-4 sm:p-8 bg-gray-50">
       <div className="max-w-4xl mx-auto">
-        {/* ИЗМЕНЕНО: Заголовок и цвет */}
-        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-6 border-b-2 border-teal-400 pb-2">
+        
+        {/* Заголовок */}
+        <h2 className="text-3xl font-extrabold text-gray-900 mb-8 border-b-4 border-teal-500/50 pb-2">
           Разместить Новое Объявление
         </h2>
 
-        {/* Форма обернута в карточку */}
-        <form onSubmit={handleSubmit} className="space-y-6 p-6 bg-white dark:bg-gray-800 rounded-xl shadow-2xl">
+        {/* Форма обернута в карточку (Soft UI) */}
+        <form onSubmit={handleSubmit} 
+              // Классический Soft UI контейнер
+              className="space-y-6 p-8 bg-white rounded-3xl shadow-2xl shadow-gray-300/60">
           
-          {/* 1. Заголовок */}
+          {/* 1. Заголовок (Отдельное поле, без фона, но с акцентом фокуса) */}
           <div className="relative">
             <input
               type="text"
-              placeholder="Название товара или услуги (обязательно)" // ИЗМЕНЕНО: Заголовок заметки -> Название товара
+              placeholder="Название товара или услуги (обязательно)"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              // ИЗМЕНЕНО: Цвет фокуса
-              className="w-full px-5 py-3 text-lg border-b-2 border-gray-300 dark:border-gray-700 focus:border-teal-500 bg-transparent dark:text-white focus:outline-none transition duration-200 font-semibold"
+              // Стиль: убрана нижняя граница, фокус - мягкое кольцо
+              className="w-full px-4 py-3 text-xl font-semibold text-gray-900 
+                         bg-gray-100 rounded-xl border border-transparent 
+                         focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white 
+                         transition duration-200 shadow-inner placeholder-gray-500"
+              required
             />
           </div>
 
-          {/* 2. Цена и Локация (В одном ряду) */}
+          {/* 2. Цена и Локация (В одном ряду, Soft UI) */}
           <div className="flex flex-col sm:flex-row gap-4">
             
             {/* Поле Цены */}
-            <div className="flex items-center gap-3 border p-3 rounded-xl dark:border-gray-700 bg-gray-50 dark:bg-gray-700 w-full sm:w-1/2">
-                <FiDollarSign className="w-5 h-5 text-teal-500 dark:text-teal-400" /> {/* ИЗМЕНЕНО: Цвет иконки */}
+            <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl w-full sm:w-1/2 shadow-inner">
+                <FiDollarSign className="w-5 h-5 text-teal-500" />
                 <input
                 type="number"
                 placeholder="Цена (в сомах)"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                className="w-full bg-transparent dark:text-gray-200 focus:outline-none appearance-none"
-                required // Обязательное поле для объявления
+                className="w-full bg-transparent text-gray-800 focus:outline-none appearance-none"
+                required
                 />
             </div>
 
             {/* Поле Локации */}
-            <div className="flex items-center gap-3 border p-3 rounded-xl dark:border-gray-700 bg-gray-50 dark:bg-gray-700 w-full sm:w-1/2">
-                <FiMapPin className="w-5 h-5 text-teal-500 dark:text-teal-400" /> {/* ИЗМЕНЕНО: Цвет иконки */}
+            <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl w-full sm:w-1/2 shadow-inner">
+                <FiMapPin className="w-5 h-5 text-teal-500" />
                 <input
                 type="text"
                 placeholder="Город или адрес"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="w-full bg-transparent dark:text-gray-200 focus:outline-none"
+                className="w-full bg-transparent text-gray-800 focus:outline-none"
                 />
             </div>
 
           </div>
 
           {/* 3. Поле Тегов */}
-          <div className="flex items-center gap-3 border p-3 rounded-xl dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-            <FiTag className="w-5 h-5 text-teal-500 dark:text-teal-400" /> {/* ИЗМЕНЕНО: Цвет иконки */}
+          <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl shadow-inner">
+            <FiTag className="w-5 h-5 text-teal-500" />
             <input
               type="text"
-              placeholder="Ключевые слова (разделяйте запятыми: ремонт, авто, услуга)" // ИЗМЕНЕНО: Текст заглушка
+              placeholder="Ключевые слова (разделяйте запятыми: ремонт, авто, услуга)"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              className="w-full bg-transparent dark:text-gray-200 focus:outline-none"
+              className="w-full bg-transparent text-gray-800 focus:outline-none"
             />
           </div>
 
-          {/* 4. Tiptap Toolbar (ИЗМЕНЕН ЦВЕТ) */}
-          {editor && (
-            <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg flex gap-3 flex-wrap shadow-inner">
-              {[
-                ["Жирный", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold")],
-                ["Курсив", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic")],
-                ["H1", () => editor.chain().focus().toggleHeading({ level: 1 }).run(), editor.isActive("heading", { level: 1 })],
-                ["•Список", () => editor.chain().focus().toggleBulletList().run(), editor.isActive("bulletList")],
-                ["Нумеров.", () => editor.chain().focus().toggleOrderedList().run(), editor.isActive("orderedList")],
-                ["Код </>", () => editor.chain().focus().toggleCodeBlock().run(), editor.isActive("codeBlock")],
-              ].map(([label, handler, isActive]) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={handler}
-                  className={TiptapButtonClass(isActive)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* 5. Редактор */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl min-h-[300px] shadow-inner">
+          {/* 4. Редактор (Собственный Soft UI контейнер) */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-lg shadow-gray-200/50">
+            {/* Панель инструментов */}
+            <TiptapToolbar editor={editor} />
+            {/* Область контента */}
             <EditorContent editor={editor} />
           </div>
 
-          {/* 6. Изображение и Настройки Публичности (Один ряд) */}
+          {/* 5. Изображение и Настройки Публичности (Один ряд, Soft UI) */}
           <div className="flex flex-col sm:flex-row justify-between gap-4 pt-2">
             
-            {/* Флажок для публичности (для модерации/статуса, хотя объявления обычно публичные) */}
-            <div className={`flex items-center space-x-3 p-3 rounded-lg w-full sm:w-1/2 cursor-pointer 
-                            transition duration-200 ${isPublic 
-                              ? 'bg-teal-100 dark:bg-teal-900 border border-teal-500' // ИЗМЕНЕНО: Цвет
-                              : 'bg-gray-100 dark:bg-gray-700 border border-transparent hover:border-teal-300'}`} // ИЗМЕНЕНО: Цвет
+            {/* Флажок публичности (Soft UI, активное состояние с тенью) */}
+            <div className={`flex items-center space-x-3 p-3 rounded-xl w-full sm:w-1/2 cursor-pointer 
+                            transition duration-200 border-2 
+                            ${isPublic 
+                              ? 'bg-teal-50 border-teal-400 shadow-md shadow-teal-100'
+                              : 'bg-gray-100 border-gray-200 shadow-inner'}`}
                  onClick={() => setIsPublic(!isPublic)}>
               
-              <input
-                type="checkbox"
-                id="isPublic"
-                checked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
-                className="hidden" 
-              />
               {isPublic ? (
-                  <FiUnlock className="w-5 h-5 text-teal-600" /> // ИЗМЕНЕНО: Цвет
+                  <FiUnlock className="w-5 h-5 text-teal-600" />
               ) : (
-                  <FiLock className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  <FiLock className="w-5 h-5 text-gray-500" />
               )}
-              <label htmlFor="isPublic" className="text-gray-800 dark:text-gray-200 font-medium select-none">
-                {isPublic ? "Активно (Отображается на доске)" : "Черновик (Только для вас)"} {/* ИЗМЕНЕНО: Текст */}
-              </label>
+              <span className="text-gray-800 font-medium select-none">
+                {isPublic ? "Активно (Отображается)" : "Черновик (Не опубликовано)"}
+              </span>
             </div>
             
-            {/* Загрузка Изображения (ИЗМЕНЕН ЦВЕТ) */}
+            {/* Загрузка Изображения (Акцентная кнопка) */}
             <label 
                 htmlFor="image-upload" 
-                className={`flex items-center justify-center w-full sm:w-1/2 p-3 rounded-lg font-medium cursor-pointer transition duration-200 
-                          ${imageUrl ? 'bg-teal-100 dark:bg-teal-900 text-teal-700 border border-teal-500' : 'bg-teal-500 text-white hover:bg-teal-600'}`}>
+                className={`flex items-center justify-center w-full sm:w-1/2 p-3 rounded-xl font-bold cursor-pointer transition duration-200 
+                          shadow-lg hover:shadow-xl
+                          ${imageUrl 
+                            ? 'bg-teal-100 text-teal-700 border border-teal-500 shadow-teal-200' 
+                            : 'bg-teal-500 text-white hover:bg-teal-600 shadow-teal-400/50'}`}>
                 <FiImage className="w-5 h-5 mr-2" />
-                {imageUrl ? "Фото товара загружено" : "Загрузить фото товара"} {/* ИЗМЕНЕНО: Текст */}
+                {imageUrl ? "Фото товара загружено" : "Загрузить фото товара"}
                 <input
                     id="image-upload"
                     type="file"
@@ -259,18 +293,18 @@ const CreateAd = () => { // ИЗМЕНЕНО: CreateNote -> CreateAd
           </div>
           {/* Конец ряда */}
 
-          {/* Image Preview (без изменений) */}
+          {/* Image Preview */}
           {imageUrl && (
-            <div className="relative border-4 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-2">
+            <div className="relative border-4 border-dashed border-gray-200 bg-gray-50 rounded-xl p-4 shadow-inner">
               <img
                 src={imageUrl}
                 alt="Uploaded"
-                className="w-full max-h-64 object-contain rounded-lg"
+                className="w-full max-h-80 object-contain rounded-lg shadow-md"
               />
               <button 
                 type="button" 
                 onClick={() => setImageUrl("")}
-                className="absolute top-4 right-4 bg-red-600 text-white p-1 rounded-full text-xs hover:bg-red-700 transition"
+                className="absolute top-6 right-6 bg-red-500 text-white p-2 rounded-full font-bold text-sm hover:bg-red-600 transition shadow-lg"
               >
                   X
               </button>
@@ -278,11 +312,12 @@ const CreateAd = () => { // ИЗМЕНЕНО: CreateNote -> CreateAd
           )}
 
 
-          {/* Кнопка Отправки (ИЗМЕНЕН ЦВЕТ) */}
+          {/* Кнопка Отправки (Акцентная, с сильной тенью) */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white px-6 py-3 text-lg font-bold rounded-xl shadow-lg hover:bg-teal-700 transition duration-300 transform hover:-translate-y-0.5" // ИЗМЕНЕНО: pink -> teal
+            className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white px-6 py-3 text-lg font-bold rounded-2xl 
+                       shadow-xl shadow-teal-400/50 hover:bg-teal-700 transition duration-300 transform hover:-translate-y-1"
           >
             {loading ? (
                 <>
