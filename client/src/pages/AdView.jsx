@@ -2,13 +2,67 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import { FiLoader, FiTag, FiMapPin, FiArrowLeft, FiCalendar } from 'react-icons/fi'; // Добавлена FiCalendar
+import { FiLoader, FiTag, FiMapPin, FiArrowLeft, FiCalendar, FiPhone, FiChevronLeft, FiChevronRight } from 'react-icons/fi'; // Добавлена FiCalendar
 
 const AdView = () => {
   const { id } = useParams();
   const [ad, setAd] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
   const navigate = useNavigate();
+
+  // Минимальное расстояние для свайпа
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd || !ad?.images) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && ad.images.length > 1) {
+      setCurrentImageIndex(
+        currentImageIndex === ad.images.length - 1 ? 0 : currentImageIndex + 1
+      );
+    }
+    if (isRightSwipe && ad.images.length > 1) {
+      setCurrentImageIndex(
+        currentImageIndex === 0 ? ad.images.length - 1 : currentImageIndex - 1
+      );
+    }
+  };
+
+  // Обработка клавиатурной навигации
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (!ad?.images || ad.images.length <= 1) return;
+      
+      if (e.key === 'ArrowLeft') {
+        setCurrentImageIndex(
+          currentImageIndex === 0 ? ad.images.length - 1 : currentImageIndex - 1
+        );
+      } else if (e.key === 'ArrowRight') {
+        setCurrentImageIndex(
+          currentImageIndex === ad.images.length - 1 ? 0 : currentImageIndex + 1
+        );
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [ad, currentImageIndex]);
 
   // 1. 🌐 ФУНКЦИЯ ЗАГРУЗКИ ДЕТАЛЕЙ ОБЪЯВЛЕНИЯ
   useEffect(() => {
@@ -23,6 +77,8 @@ const AdView = () => {
 
         const data = await response.json();
         setAd(data);
+        // Сбрасываем индекс изображения при загрузке нового объявления
+        setCurrentImageIndex(0);
       } catch (error) {
         console.error("Ошибка при получении объявления:", error);
         toast.error(error.message);
@@ -83,14 +139,91 @@ const AdView = () => {
             <FiArrowLeft className="w-5 h-5" /> Назад
           </button>
 
-          {/* Изображение */}
-          {ad.imageUrl && (
-            <img
-              src={ad.imageUrl}
-              alt={ad.title}
-              // Скругленные углы и более мягкая тень
-              className="w-full max-h-[30rem] object-cover rounded-2xl mb-8 shadow-xl shadow-gray-400/40"
-            />
+          {/* Галерея изображений с прокруткой */}
+          {((ad.images && ad.images.length > 0) || ad.imageUrl) && (
+            <div className="relative mb-8 rounded-2xl overflow-hidden shadow-xl shadow-gray-400/40 bg-gray-100">
+              {/* Основное изображение */}
+              <div 
+                className="relative w-full h-[30rem] overflow-hidden"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
+                <img
+                  src={
+                    ad.images && ad.images.length > 0
+                      ? ad.images[currentImageIndex]
+                      : ad.imageUrl
+                  }
+                  alt={ad.title}
+                  className="w-full h-full object-contain bg-white select-none"
+                  draggable={false}
+                />
+                
+                {/* Навигация по изображениям (только если больше 1 изображения) */}
+                {ad.images && ad.images.length > 1 && (
+                  <>
+                    {/* Кнопка "Назад" */}
+                    <button
+                      onClick={() =>
+                        setCurrentImageIndex(
+                          currentImageIndex === 0
+                            ? ad.images.length - 1
+                            : currentImageIndex - 1
+                        )
+                      }
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all shadow-lg z-10"
+                      aria-label="Предыдущее изображение"
+                    >
+                      <FiChevronLeft className="w-6 h-6" />
+                    </button>
+                    
+                    {/* Кнопка "Вперед" */}
+                    <button
+                      onClick={() =>
+                        setCurrentImageIndex(
+                          currentImageIndex === ad.images.length - 1
+                            ? 0
+                            : currentImageIndex + 1
+                        )
+                      }
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-3 rounded-full transition-all shadow-lg z-10"
+                      aria-label="Следующее изображение"
+                    >
+                      <FiChevronRight className="w-6 h-6" />
+                    </button>
+                    
+                    {/* Индикатор текущего изображения */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm font-semibold">
+                      {currentImageIndex + 1} / {ad.images.length}
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              {/* Миниатюры изображений (если больше 1 изображения) */}
+              {ad.images && ad.images.length > 1 && (
+                <div className="flex gap-2 p-4 bg-white overflow-x-auto scrollbar-hide">
+                  {ad.images.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                        currentImageIndex === index
+                          ? "border-teal-500 shadow-lg"
+                          : "border-gray-200 hover:border-teal-300"
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`${ad.title} - изображение ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Заголовок и цена */}
@@ -104,12 +237,23 @@ const AdView = () => {
             </p>
           </header>
 
-          {/* Местоположение и дата */}
+          {/* Местоположение, телефон и дата */}
           <div className="flex flex-wrap items-center gap-6 sm:gap-10 text-gray-600 mb-8">
             <div className="flex items-center gap-2">
               <FiMapPin className="w-6 h-6 text-teal-500" />
               <span className="text-lg font-medium">{ad.location || 'Местоположение не указано'}</span>
             </div>
+            {ad.phone && (
+              <div className="flex items-center gap-2">
+                <FiPhone className="w-6 h-6 text-teal-500" />
+                <a 
+                  href={`tel:${ad.phone}`}
+                  className="text-lg font-medium text-teal-600 hover:text-teal-700 hover:underline transition"
+                >
+                  {ad.phone}
+                </a>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <FiCalendar className="w-6 h-6 text-gray-400" />
               <span className="text-sm">Опубликовано: {new Date(ad.createdAt).toLocaleDateString()}</span>

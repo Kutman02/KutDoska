@@ -4,7 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import toast, { Toaster } from "react-hot-toast";
-import { FiSave, FiTag, FiImage, FiX, FiDollarSign, FiMapPin, FiMenu } from "react-icons/fi"; // Добавлена FiMenu
+import { FiSave, FiTag, FiImage, FiX, FiDollarSign, FiMapPin, FiMenu, FiPhone } from "react-icons/fi"; // Добавлена FiMenu
 
 // Классы для стилизации кнопок Tiptap (Обновлено для Soft UI)
 const TiptapButtonClass = (isActive) => 
@@ -73,8 +73,9 @@ const EditAd = () => {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [location, setLocation] = useState("");
+  const [phone, setPhone] = useState("");
   const [tags, setTags] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [images, setImages] = useState([]); // Массив для нескольких изображений
   const [activeTab, setActiveTab] = useState("content"); 
   const [loading, setLoading] = useState(false);
 
@@ -110,8 +111,9 @@ const EditAd = () => {
         setTitle(data.title || "");
         setPrice(data.price?.toString() || "");
         setLocation(data.location || "");
+        setPhone(data.phone || "");
         setTags(data.tags?.join(", ") || "");
-        setImageUrl(data.imageUrl || "");
+        setImages(data.images && data.images.length > 0 ? data.images : (data.imageUrl ? [data.imageUrl] : []));
         editor?.commands.setContent(data.content || "");
       } catch (err) {
         toast.error("Не удалось загрузить объявление для редактирования");
@@ -125,30 +127,46 @@ const EditAd = () => {
   }, [editor, id]);
 
   // Handle image upload
-  const handleImageUpload = async (file) => {
-    if (!file) return;
+  const handleImageUpload = async (selectedFiles) => {
+    if (!selectedFiles || selectedFiles.length === 0) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
+    // Ограничиваем количество изображений до 5
+    const filesToUpload = Array.from(selectedFiles).slice(0, 5 - images.length);
+    
+    if (filesToUpload.length === 0) {
+      toast.error("Можно загрузить максимум 5 изображений");
+      return;
+    }
 
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:8080/api/upload/ad-image", { 
-        method: "POST",
-        body: formData,
+      const uploadPromises = filesToUpload.map(async (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("http://localhost:8080/api/upload/ad-image", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) throw new Error("Не удалось загрузить изображение");
+        const data = await res.json();
+        return data.imageUrl;
       });
 
-      if (!res.ok) throw new Error("Загрузка изображения не удалась");
-
-      const data = await res.json();
-      setImageUrl(data.imageUrl);
-      toast.success("Изображение успешно загружено!");
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setImages([...images, ...uploadedUrls]);
+      toast.success(`Загружено ${uploadedUrls.length} изображений!`);
     } catch (err) {
-      toast.error("Ошибка загрузки изображения");
+      toast.error("Ошибка загрузки изображений");
       console.error("Image upload error:", err.message);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
+  };
+
+  const handleRemoveImage = (indexToRemove) => {
+    setImages(images.filter((_, index) => index !== indexToRemove));
   };
 
   // Handle update ad
@@ -178,9 +196,11 @@ const EditAd = () => {
             title, 
             content, 
             tags: tagArray, 
-            imageUrl, 
+            images: images.length > 0 ? images : [],
+            imageUrl: images.length > 0 ? images[0] : "",
             price: parsedPrice,
-            location
+            location,
+            phone
         }),
       });
 
@@ -239,6 +259,18 @@ const EditAd = () => {
             />
         </div>
 
+        {/* Phone Input */}
+        <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl shadow-inner">
+            <FiPhone className="w-5 h-5 text-teal-600" />
+            <input
+                type="tel"
+                placeholder="Номер телефона (например: +996 555 123456)"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full bg-transparent text-gray-800 focus:outline-none"
+            />
+        </div>
+
         {/* Image Upload/Preview */}
         <div className="border-2 border-dashed border-gray-200 bg-white rounded-xl p-4 shadow-md">
             <label 
@@ -246,36 +278,44 @@ const EditAd = () => {
                 // Стиль кнопки загрузки Soft UI
                 className={`flex items-center justify-center w-full p-3 rounded-xl font-bold cursor-pointer transition duration-200 
                           shadow-lg hover:shadow-xl
-                          ${imageUrl 
+                          ${images.length > 0 
                             ? 'bg-teal-100 text-teal-700 border border-teal-500 shadow-teal-200' 
                             : 'bg-teal-500 text-white hover:bg-teal-600 shadow-teal-400/50'}`}>
                 <FiImage className="w-5 h-5 mr-2" />
-                {imageUrl ? "Фото товара загружено (Нажмите для смены)" : "Загрузить новое фото товара"}
+                {images.length > 0 ? `Загружено ${images.length}/5 фото (Нажмите для добавления)` : "Загрузить фото товара (до 5 шт.)"}
                 <input
                     id="image-upload"
                     type="file"
                     accept="image/*"
-                    onChange={(e) => handleImageUpload(e.target.files[0])}
+                    multiple
+                    onChange={(e) => handleImageUpload(e.target.files)}
                     className="hidden"
                 />
             </label>
 
-            {/* Image Preview */}
-            {imageUrl && (
-                <div className="relative mt-4 bg-gray-50 p-2 rounded-lg shadow-inner">
-                    <img
-                        src={imageUrl}
-                        alt="Ad Cover"
-                        className="w-full max-h-64 object-contain rounded-lg"
-                    />
-                    <button 
-                        type="button" 
-                        onClick={() => setImageUrl("")}
-                        className="absolute top-4 right-4 bg-red-500 text-white p-2 rounded-full font-bold text-sm hover:bg-red-600 transition shadow-lg"
-                        title="Удалить изображение"
-                    >
-                        <FiX className="w-4 h-4" />
-                    </button>
+            {/* Images Preview Gallery */}
+            {images.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+                    {images.map((imgUrl, index) => (
+                        <div key={index} className="relative border-2 border-dashed border-gray-200 bg-gray-50 rounded-xl p-2 shadow-inner">
+                            <img
+                                src={imgUrl}
+                                alt={`Ad Image ${index + 1}`}
+                                className="w-full h-40 object-cover rounded-lg shadow-md"
+                            />
+                            <button 
+                                type="button" 
+                                onClick={() => handleRemoveImage(index)}
+                                className="absolute top-3 right-3 bg-red-500 text-white p-1.5 rounded-full font-bold text-xs hover:bg-red-600 transition shadow-lg"
+                                title="Удалить изображение"
+                            >
+                                <FiX className="w-4 h-4" />
+                            </button>
+                            <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                                {index + 1}/{images.length}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             )}
         </div>

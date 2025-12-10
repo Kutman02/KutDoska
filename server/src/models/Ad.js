@@ -1,20 +1,21 @@
+// src/models/Ad.js
 import mongoose from "mongoose";
 
-const adSchema = new mongoose.Schema({ // ИЗМЕНЕНО: noteSchema -> adSchema
+const adSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
     trim: true,
+    maxlength: 100,
   },
-  content: { // Описание объявления
+  content: {
     type: String,
     required: true,
+    maxlength: 5000,
   },
-  
-  // 💡 НОВЫЕ ПОЛЯ ДЛЯ ОБЪЯВЛЕНИЙ
   price: {
     type: Number,
-    required: true, // Цена должна быть обязательной
+    required: true, 
     min: 0,
   },
   location: {
@@ -22,28 +23,45 @@ const adSchema = new mongoose.Schema({ // ИЗМЕНЕНО: noteSchema -> adSche
     trim: true,
     default: "Не указано",
   },
-  
-  tags: [String], // array of tags (ключевые слова для поиска)
-  category: String, // optional (например, "Недвижимость", "Электроника")
-  imageUrl: String, // optional (фотография товара/услуги)
-  
-  createdAt: {
-    type: Date,
-    default: Date.now,
+  phone: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+  category: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category", 
+    required: true,
   },
   user: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: "User",
     required: true 
   },
-  // 💡 НОВОЕ ПОЛЕ: Определяет, является ли объявление черновиком
-  isDraft: {
+  imageUrl: {
+    type: String,
+    default: "",
+  },
+  images: [String], // Массив URL-адресов изображений (первый = imageUrl для совместимости)
+  tags: [String],
+  
+  status: {
+    type: String,
+    enum: ["Active", "Sold", "Paused", "Draft"],
+    default: "Draft",
+  },
+  
+  isFeatured: { // Для платного продвижения
     type: Boolean,
-    default: false, // По умолчанию объявление активно/публично (если его не создали через "Сохранить как черновик")
-  }
+    default: false,
+  },
+
 }, {
-    timestamps: true // Добавим автоматическое управление createdAt и updatedAt
+    timestamps: true 
 });
 
-const Ad = mongoose.model("Ad", adSchema); // ИЗМЕНЕНО: Note -> Ad
+// Индексы для оптимизации поиска
+adSchema.index({ title: 'text', content: 'text', tags: 'text' });
+
+const Ad = mongoose.model("Ad", adSchema);
 export default Ad;

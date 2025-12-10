@@ -16,15 +16,14 @@ import AdView from "./pages/AdView";
 
 
 function App() {
-  const {setUser} = useContext(AuthContext)
+  const { setUser } = useContext(AuthContext);
   
   useEffect(() => {
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); 
+    }, [setUser]); 
   
   return (
     <>

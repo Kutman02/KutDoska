@@ -1,11 +1,12 @@
 // src/components/CreateAd.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react"; // 💡 Добавлен useEffect
 import { useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { FiImage, FiTag, FiLock, FiUnlock, FiSend, FiDollarSign, FiMapPin } from "react-icons/fi";
+import { FiImage, FiTag, FiLock, FiUnlock, FiSend, FiDollarSign, FiMapPin, FiBriefcase, FiPhone, FiX } from "react-icons/fi"; // 💡 Добавлена FiBriefcase для категории
+import toast from "react-hot-toast";
 
-// Классы для стилизации кнопок Tiptap (Обновлено для Soft UI)
+// Классы для стилизации кнопок Tiptap
 const TiptapButtonClass = (isActive) => 
   `p-2 rounded-lg text-sm font-medium transition duration-200 shadow-md 
    ${isActive 
@@ -19,39 +20,76 @@ const CreateAd = () => {
   const [tags, setTags] = useState(""); 
   const [price, setPrice] = useState("");
   const [location, setLocation] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [phone, setPhone] = useState("");
+  const [images, setImages] = useState([]); // Массив для нескольких изображений
   const [loading, setLoading] = useState(false);
   const [isPublic, setIsPublic] = useState(true);
+  
+  // 💡 НОВОЕ СОСТОЯНИЕ ДЛЯ КАТЕГОРИЙ
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+
+  // 1. 🗂️ Загрузка всех Главных Категорий
+  useEffect(() => {
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch("http://localhost:8080/api/categories");
+            if (!response.ok) {
+                throw new Error("Не удалось загрузить категории.");
+            }
+            const data = await response.json(); 
+            setCategories(data);
+            // Устанавливаем первую категорию по умолчанию, если они есть
+            if (data.length > 0) {
+                setSelectedCategoryId(data[0]._id);
+            }
+        } catch (error) {
+            console.error("Ошибка при получении категорий:", error);
+            toast.error("Ошибка при загрузке структуры категорий.");
+        }
+    };
+    fetchCategories();
+  }, []); 
 
   const editor = useEditor({
     extensions: [StarterKit],
     content: "<p>Введите подробное описание товара или услуги. Укажите состояние, характеристики и условия сделки...</p>",
     editorProps: {
       attributes: {
-        // Убрана темная тема, добавлены стили для светлого фона
         class: "prose max-w-none focus:outline-none p-4 text-gray-800 min-h-[250px]", 
       },
     },
   });
 
-  const handleImageUpload = async (selectedFile) => {
-    if (!selectedFile) return;
+  const handleImageUpload = async (selectedFiles) => {
+    if (!selectedFiles || selectedFiles.length === 0) return;
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
+    // Ограничиваем количество изображений до 5
+    const filesToUpload = Array.from(selectedFiles).slice(0, 5 - images.length);
+    
+    if (filesToUpload.length === 0) {
+      alert("Можно загрузить максимум 5 изображений");
+      return;
+    }
 
     try {
-      setLoading(true); 
-      // Адаптируйте URL для загрузки изображений объявлений, если нужно
-      const res = await fetch("http://localhost:8080/api/upload/ad-image", {
-        method: "POST",
-        body: formData,
+      setLoading(true);
+      const uploadPromises = filesToUpload.map(async (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("http://localhost:8080/api/upload/ad-image", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) throw new Error("Не удалось загрузить изображение");
+        const data = await res.json();
+        return data.imageUrl;
       });
 
-      if (!res.ok) throw new Error("Не удалось загрузить изображение");
-
-      const data = await res.json();
-      setImageUrl(data.imageUrl); 
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setImages([...images, ...uploadedUrls]);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -59,12 +97,16 @@ const CreateAd = () => {
     }
   };
 
+  const handleRemoveImage = (indexToRemove) => {
+    setImages(images.filter((_, index) => index !== indexToRemove));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const content = editor?.getText();
 
-    if (!title.trim() || !content.trim() || !price.trim()) {
-      alert("Пожалуйста, заполните Заголовок, Цену и Описание.");
+    if (!title.trim() || !content.trim() || !price.trim() || !selectedCategoryId) { // 💡 Проверка категории
+      alert("Пожалуйста, заполните Заголовок, Цену, Описание и выберите Категорию.");
       return;
     }
 
@@ -91,12 +133,15 @@ const CreateAd = () => {
           },
           body: JSON.stringify({
             title,
-            content: editor.getHTML(), // Используем HTML контент
+            content: editor.getHTML(), 
             price: parseFloat(price),
             location,
-            imageUrl,
+            phone,
+            images: images.length > 0 ? images : [],
+            imageUrl: images.length > 0 ? images[0] : "",
             tags: tagArray,
-            isPublic, 
+            isPublic,
+            category: selectedCategoryId, // 💡 ОТПРАВКА ID КАТЕГОРИИ
           }),
         }
       );
@@ -115,7 +160,7 @@ const CreateAd = () => {
     }
   };
   
-  // Компонент меню редактора (обязателен для Tiptap)
+  // Компонент меню редактора (остается без изменений)
   const TiptapToolbar = ({ editor }) => {
     if (!editor) return null;
 
@@ -168,28 +213,23 @@ const CreateAd = () => {
   };
 
   return (
-    // Общий фон страницы
     <div className="min-h-screen p-4 sm:p-8 bg-gray-50">
       <div className="max-w-4xl mx-auto">
         
-        {/* Заголовок */}
         <h2 className="text-3xl font-extrabold text-gray-900 mb-8 border-b-4 border-teal-500/50 pb-2">
           Разместить Новое Объявление
         </h2>
 
-        {/* Форма обернута в карточку (Soft UI) */}
         <form onSubmit={handleSubmit} 
-              // Классический Soft UI контейнер
               className="space-y-6 p-8 bg-white rounded-3xl shadow-2xl shadow-gray-300/60">
           
-          {/* 1. Заголовок (Отдельное поле, без фона, но с акцентом фокуса) */}
+          {/* 1. Заголовок */}
           <div className="relative">
             <input
               type="text"
               placeholder="Название товара или услуги (обязательно)"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              // Стиль: убрана нижняя граница, фокус - мягкое кольцо
               className="w-full px-4 py-3 text-xl font-semibold text-gray-900 
                          bg-gray-100 rounded-xl border border-transparent 
                          focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white 
@@ -198,7 +238,30 @@ const CreateAd = () => {
             />
           </div>
 
-          {/* 2. Цена и Локация (В одном ряду, Soft UI) */}
+          {/* 2. Категория, Цена, Локация (Разбиты на 2 ряда для лучшей адаптивности) */}
+
+          {/* 2.1. Выбор Категории */}
+          <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl shadow-inner">
+            <FiBriefcase className="w-5 h-5 text-teal-500" />
+            <select
+              value={selectedCategoryId}
+              onChange={(e) => setSelectedCategoryId(e.target.value)}
+              className="w-full bg-transparent text-gray-800 focus:outline-none appearance-none cursor-pointer"
+              required
+            >
+              {categories.length === 0 ? (
+                <option value="" disabled>Загрузка категорий...</option>
+              ) : (
+                categories.map(cat => (
+                  <option key={cat._id} value={cat._id}>
+                    {cat.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          {/* 2.2. Цена и Локация */}
           <div className="flex flex-col sm:flex-row gap-4">
             
             {/* Поле Цены */}
@@ -228,6 +291,18 @@ const CreateAd = () => {
 
           </div>
 
+          {/* Поле Телефона */}
+          <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl shadow-inner">
+            <FiPhone className="w-5 h-5 text-teal-500" />
+            <input
+              type="tel"
+              placeholder="Номер телефона (например: +996 555 123456)"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full bg-transparent text-gray-800 focus:outline-none"
+            />
+          </div>
+
           {/* 3. Поле Тегов */}
           <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl shadow-inner">
             <FiTag className="w-5 h-5 text-teal-500" />
@@ -240,18 +315,16 @@ const CreateAd = () => {
             />
           </div>
 
-          {/* 4. Редактор (Собственный Soft UI контейнер) */}
+          {/* 4. Редактор */}
           <div className="bg-white border border-gray-200 rounded-xl shadow-lg shadow-gray-200/50">
-            {/* Панель инструментов */}
             <TiptapToolbar editor={editor} />
-            {/* Область контента */}
             <EditorContent editor={editor} />
           </div>
 
-          {/* 5. Изображение и Настройки Публичности (Один ряд, Soft UI) */}
+          {/* 5. Изображение и Настройки Публичности */}
           <div className="flex flex-col sm:flex-row justify-between gap-4 pt-2">
             
-            {/* Флажок публичности (Soft UI, активное состояние с тенью) */}
+            {/* Флажок публичности */}
             <div className={`flex items-center space-x-3 p-3 rounded-xl w-full sm:w-1/2 cursor-pointer 
                             transition duration-200 border-2 
                             ${isPublic 
@@ -269,23 +342,24 @@ const CreateAd = () => {
               </span>
             </div>
             
-            {/* Загрузка Изображения (Акцентная кнопка) */}
+            {/* Загрузка Изображений */}
             <label 
                 htmlFor="image-upload" 
                 className={`flex items-center justify-center w-full sm:w-1/2 p-3 rounded-xl font-bold cursor-pointer transition duration-200 
                           shadow-lg hover:shadow-xl
-                          ${imageUrl 
+                          ${images.length > 0 
                             ? 'bg-teal-100 text-teal-700 border border-teal-500 shadow-teal-200' 
                             : 'bg-teal-500 text-white hover:bg-teal-600 shadow-teal-400/50'}`}>
                 <FiImage className="w-5 h-5 mr-2" />
-                {imageUrl ? "Фото товара загружено" : "Загрузить фото товара"}
+                {images.length > 0 ? `Загружено ${images.length}/5 фото` : "Загрузить фото товара (до 5 шт.)"}
                 <input
                     id="image-upload"
                     type="file"
                     accept="image/*"
+                    multiple
                     onChange={(e) => {
-                        const file = e.target.files[0];
-                        handleImageUpload(file);
+                        const files = e.target.files;
+                        handleImageUpload(files);
                     }}
                     className="hidden"
                 />
@@ -293,26 +367,33 @@ const CreateAd = () => {
           </div>
           {/* Конец ряда */}
 
-          {/* Image Preview */}
-          {imageUrl && (
-            <div className="relative border-4 border-dashed border-gray-200 bg-gray-50 rounded-xl p-4 shadow-inner">
-              <img
-                src={imageUrl}
-                alt="Uploaded"
-                className="w-full max-h-80 object-contain rounded-lg shadow-md"
-              />
-              <button 
-                type="button" 
-                onClick={() => setImageUrl("")}
-                className="absolute top-6 right-6 bg-red-500 text-white p-2 rounded-full font-bold text-sm hover:bg-red-600 transition shadow-lg"
-              >
-                  X
-              </button>
+          {/* Images Preview Gallery */}
+          {images.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {images.map((imgUrl, index) => (
+                <div key={index} className="relative border-2 border-dashed border-gray-200 bg-gray-50 rounded-xl p-2 shadow-inner">
+                  <img
+                    src={imgUrl}
+                    alt={`Uploaded ${index + 1}`}
+                    className="w-full h-40 object-cover rounded-lg shadow-md"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => handleRemoveImage(index)}
+                    className="absolute top-3 right-3 bg-red-500 text-white p-1.5 rounded-full font-bold text-xs hover:bg-red-600 transition shadow-lg"
+                  >
+                    <FiX className="w-4 h-4" />
+                  </button>
+                  <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                    {index + 1}/{images.length}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
 
-          {/* Кнопка Отправки (Акцентная, с сильной тенью) */}
+          {/* Кнопка Отправки */}
           <button
             type="submit"
             disabled={loading}

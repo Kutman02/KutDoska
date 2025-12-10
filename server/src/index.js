@@ -1,62 +1,71 @@
+// src/index.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import mongoose from "mongoose";
-import router from "./routes/userRoute.js";
-import adsRouter from "./routes/adsRoutes.js"; // ИЗМЕНЕНО: notesrouter -> adsRouter и adsRoutes.js
+import userRouter from "./routes/userRoute.js";
+import adsRouter from "./routes/adsRoutes.js";
+import categoryRouter from "./routes/categoryRoutes.js";
 import { upload } from "./middleware/multer.js";
-import cloudinaryUpload from "./utils/cloudinary.js";
+import cloudinaryUpload from "./utils/cloudinary.js"; // Утилита, которая теперь принимает буфер
 
 dotenv.config();
 
 const app = express();
-console.log("Environment variables loaded");
-console.log("MONGO_URI:", process.env.MONGO_URI);
-app.use(cors(
-  {
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  }
-));
-app.use(express.json());
+
+// CORS: разрешаем только доверенные фронтенды, иначе креды с origin="*" не работают.
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173").split(",");
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            if (!origin) return callback(null, true); // curl / local tools
+            const isAllowed = allowedOrigins.includes(origin);
+            return callback(isAllowed ? null : new Error("CORS: origin not allowed"), isAllowed);
+        },
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        credentials: true,
+    })
+);
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
-  res.send("AdBoard API is running...");
+    res.send("AdBoard API is running...");
 });
 
-// 1. Маршруты для аутентификации (вход, регистрация)
-app.use("/api/auth", router);
+// Маршруты
+app.use("/api/auth", userRouter);
+app.use("/api/ads", adsRouter); 
+app.use("/api/categories", categoryRouter); 
 
-// 2. Маршруты для объявлений (личные и публичные)
-// Публичные маршруты (например, /api/ads/latest) должны быть настроены внутри adsRouter.
-app.use("/api/ads", adsRouter); // ИЗМЕНЕНО: /api/notes -> /api/ads
-// УДАЛЕНО: app.use("/api/public-notes", notesrouter);
+// Маршрут для загрузки изображений
+app.post("/api/upload/ad-image", upload.single("file"), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+    }
+    try {
+        // 💡 КОРРЕКТИРОВКА: Передаем буфер и MIME-тип, а не req.file.path
+        const result = await cloudinaryUpload(req.file.buffer, req.file.mimetype); 
 
-// 3. Маршрут для загрузки изображений
-app.post("/api/upload/ad-image", upload.single("file"), async (req, res) => { // ИЗМЕНЕНО: /api/upload -> /api/upload/ad-image
-
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded" });
-  }
-  try {
-   
-    const result = await cloudinaryUpload(req.file.path);
-    console.log("File uploaded to Cloudinary", result);
-    res.json({ imageUrl: result.secure_url });
-  } catch (err) {
-    console.error("Cloudinary Upload Error:", err);
-    res.status(500).json({ error: "Upload failed" });
-  }
+        if (!result) {
+            return res.status(500).json({ error: "Upload failed: Cloudinary returned null" });
+        }
+        
+        console.log("File uploaded to Cloudinary", result);
+        res.json({ imageUrl: result.secure_url });
+    } catch (err) {
+        console.error("Cloudinary Upload Error:", err);
+        res.status(500).json({ error: "Upload failed" });
+    }
 });
 
 
 mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("MongoDB connected");
-    app.listen(process.env.PORT, () =>
-      console.log(`Server running on port ${process.env.PORT}`)
-    );
-  })
-  .catch((err) => console.error("Mongo error", err));
+    .connect(process.env.MONGO_URI)
+    .then(() => {
+        console.log("MongoDB connected");
+        app.listen(process.env.PORT || 8080, () =>
+            console.log(`Server running on port ${process.env.PORT || 8080}`)
+        );
+    })
+    .catch((err) => console.error("Mongo error", err));
