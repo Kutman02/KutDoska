@@ -1,11 +1,24 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite' // <-- Импорт плагина Tailwind V4
+import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss() // <-- Использование плагина Tailwind V4
+    tailwindcss()
   ],
+  // 🔑 Добавляем объект 'server' для настройки хоста и порта
+  server: {
+    // 1. Установка host: '0.0.0.0'
+    // Это указывает Vite прослушивать все сетевые интерфейсы
+    // (включая ваш локальный IP-адрес в Wi-Fi сети).
+    host: '0.0.0.0', 
+    
+    // 2. Порт (по умолчанию 5173, но лучше явно указать)
+    port: 5173,
+    
+    // 3. (Опционально, но удобно): Открывать браузер автоматически
+    // open: true, 
+  }
 })

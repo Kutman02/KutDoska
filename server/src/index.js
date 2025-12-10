@@ -14,7 +14,7 @@ dotenv.config();
 const app = express();
 
 // CORS: разрешаем только доверенные фронтенды, иначе креды с origin="*" не работают.
-const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173").split(",");
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173","http://192.168.1.116:5173").split(",");
 app.use(
     cors({
         origin: (origin, callback) => {

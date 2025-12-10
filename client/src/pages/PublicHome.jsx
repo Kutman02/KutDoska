@@ -1,4 +1,3 @@
-// src/pages/PublicHome.jsx
 import React, { useEffect, useState, useContext } from "react"; 
 import { useNavigate } from "react-router-dom";
 import AdCard from "../components/AdCard"; 
@@ -241,7 +240,12 @@ const PublicHome = () => {
             }
           </h2>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {/* ИЗМЕНЕННАЯ СЕТКА:
+            - grid-cols-3: 3 колонки по умолчанию (телефон/маленький экран)
+            - md:grid-cols-4: 4 колонки на средних экранах
+            - xl:grid-cols-6: 6 колонок на больших экранах (ПК)
+          */}
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-8">
             {publicAds.map((ad) => {
               
               const currentUserID = user?._id; 
