@@ -3,7 +3,7 @@ body {
   padding: 0;
 }
 
-/* Скрытие scrollbar для миниатюр */
+/* Скрытие scrollbar для миниатюр и breadcrumb */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */

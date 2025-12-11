@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+/* Добавьте этот стиль в ваш глобальный CSS-файл */
+.is-editor-empty::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: #9ca3af; /* Цвет серый */
+    pointer-events: none;
+    height: 0;
+    opacity: 0.6; /* Сделаем его полупрозрачным */
+  }

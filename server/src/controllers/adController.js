@@ -14,22 +14,38 @@ import jwt from "jsonwebtoken";
  */
 export const getPublicAds = async (req, res) => {
     try {
-        const { category } = req.query; 
+        const { category, subcategory, location } = req.query; 
 
         const filter = { status: "Active" }; 
 
-        if (category) {
+        // Фильтр по категории или подкатегории
+        if (subcategory) {
+            if (!mongoose.Types.ObjectId.isValid(subcategory)) {
+                return res.status(400).json({ message: "Неверный формат ID подкатегории." });
+            }
+            filter.subcategory = subcategory;
+        } else if (category) {
             if (!mongoose.Types.ObjectId.isValid(category)) {
                 return res.status(400).json({ message: "Неверный формат ID категории." });
             }
             filter.category = category;
         }
 
+        // Фильтр по локации
+        if (location) {
+            if (!mongoose.Types.ObjectId.isValid(location)) {
+                return res.status(400).json({ message: "Неверный формат ID локации." });
+            }
+            filter.locationId = location;
+        }
+
         const publicAds = await Ad.find(filter)
             .sort({ createdAt: -1 })
             .limit(20)
-            .populate("user", "name") // Показываем имя пользователя
-            .populate("category", "name icon") 
+            .populate("user", "name")
+            .populate("category", "name icon")
+            .populate("subcategory", "name")
+            .populate("locationId", "name")
             .exec();
         
         res.json(publicAds);
@@ -122,8 +138,10 @@ export const getAdById = async (req, res) => {
     
     try {
         const ad = await Ad.findOne(findQuery)
-            .populate("user", "name email phone") // Включаем контактные данные
+            .populate("user", "name email phone")
             .populate("category", "name icon")
+            .populate("subcategory", "name")
+            .populate("locationId", "name")
             .exec();
 
         if (ad) res.json(ad);
@@ -142,6 +160,8 @@ export const getMyAds = async (req, res) => {
     const ads = await Ad.find({ user: req.user._id })
         .sort({ createdAt: -1 })
         .populate("category", "name")
+        .populate("subcategory", "name")
+        .populate("locationId", "name")
         .exec();
     res.json(ads);
   } catch (err) {
@@ -151,7 +171,7 @@ export const getMyAds = async (req, res) => {
 
 // 2.2. 📝 Создать новое объявление
 export const createAd = async (req, res) => {
-  const { title, content, images, imageUrl, tags, price, location, phone, category, status, isPublic } = req.body;
+  const { title, content, images, imageUrl, tags, price, location, locationId, phone, category, subcategory, status, isPublic } = req.body;
   
   if (!title || !content || !price || !category) {
     return res.status(400).json({ message: "Title, content, price, and category are required" });
@@ -171,17 +191,22 @@ export const createAd = async (req, res) => {
       title,
       content,
       price,
-      location,
+      location: location || "",
+      locationId: locationId || null,
       phone: phone || "",
-      user: req.user._id, // Берем ID из защищенного middleware
+      user: req.user._id,
       images: normalizedImages,
       imageUrl: normalizedImages[0] || "",
-      tags: tags,
+      tags: tags || [],
       category,
+      subcategory: subcategory || null,
       status: computedStatus,
     });
 
-    const createdAd = await Ad.findById(ad._id).populate("category", "name icon");
+    const createdAd = await Ad.findById(ad._id)
+      .populate("category", "name icon")
+      .populate("subcategory", "name")
+      .populate("locationId", "name");
     res.status(201).json(createdAd);
   } catch (err) {
     res.status(500).json({ message: "Ошибка сервера при создании объявления." });
@@ -191,7 +216,7 @@ export const createAd = async (req, res) => {
 // 2.3. ✍️ Обновить объявление
 export const updateAd = async (req, res) => {
   const { id } = req.params;
-  const { title, content, images, imageUrl, tags, price, location, phone, category, status, isPublic } = req.body; 
+  const { title, content, images, imageUrl, tags, price, location, locationId, phone, category, subcategory, status, isPublic } = req.body; 
 
   try {
     // Находим объявление И проверяем, что оно принадлежит текущему пользователю
@@ -221,8 +246,10 @@ export const updateAd = async (req, res) => {
     ad.tags = tags !== undefined ? tags : ad.tags;
     ad.price = price !== undefined ? price : ad.price;
     ad.location = location !== undefined ? location : ad.location;
+    ad.locationId = locationId !== undefined ? locationId : ad.locationId;
     ad.phone = phone !== undefined ? phone : ad.phone;
     ad.category = category !== undefined ? category : ad.category;
+    ad.subcategory = subcategory !== undefined ? subcategory : ad.subcategory;
     if (status !== undefined) {
       ad.status = status;
     } else if (isPublic !== undefined) {
@@ -231,7 +258,10 @@ export const updateAd = async (req, res) => {
 
     const updated = await ad.save();
     
-    const updatedPopulated = await Ad.findById(updated._id).populate("category", "name icon");
+    const updatedPopulated = await Ad.findById(updated._id)
+      .populate("category", "name icon")
+      .populate("subcategory", "name")
+      .populate("locationId", "name");
     res.json(updatedPopulated);
   } catch (err) {
     res.status(500).json({ message: "Ошибка сервера при обновлении объявления." });

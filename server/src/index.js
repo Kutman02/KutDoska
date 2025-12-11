@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import userRouter from "./routes/userRoute.js";
 import adsRouter from "./routes/adsRoutes.js";
 import categoryRouter from "./routes/categoryRoutes.js";
+import locationRouter from "./routes/locationRoutes.js";
 import { upload } from "./middleware/multer.js";
 import cloudinaryUpload from "./utils/cloudinary.js"; // Утилита, которая теперь принимает буфер
 
@@ -14,7 +15,7 @@ dotenv.config();
 const app = express();
 
 // CORS: разрешаем только доверенные фронтенды, иначе креды с origin="*" не работают.
-const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173","http://192.168.1.116:5173").split(",");
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173").split(",");
 app.use(
     cors({
         origin: (origin, callback) => {
@@ -36,7 +37,8 @@ app.get("/", (req, res) => {
 // Маршруты
 app.use("/api/auth", userRouter);
 app.use("/api/ads", adsRouter); 
-app.use("/api/categories", categoryRouter); 
+app.use("/api/categories", categoryRouter);
+app.use("/api/locations", locationRouter); 
 
 // Маршрут для загрузки изображений
 app.post("/api/upload/ad-image", upload.single("file"), async (req, res) => {

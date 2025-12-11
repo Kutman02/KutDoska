@@ -4,10 +4,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import AdCard from "../AdCard";
-import SearchBar from "../SearchBar";
+// SearchBar больше не нужен
 import { FiGrid, FiArrowLeft, FiArrowRight, FiPlus } from "react-icons/fi";
 
-const ADS_PER_PAGE = 6;
+const ADS_PER_PAGE = 10; 
 
 // Вспомогательная функция для очистки HTML
 const stripHtml = (html) => {
@@ -18,9 +18,8 @@ const stripHtml = (html) => {
 
 const MyAds = ({ user }) => {
   const [ads, setAds] = useState([]);
-  const [query, setQuery] = useState("");
-  const [tagFilter, setTagFilter] = useState("Все");
-  const [tags, setTags] = useState([]);
+  // УДАЛЯЕМ: query, tagFilter, tags
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,18 +45,12 @@ const MyAds = ({ user }) => {
       const data = await response.json();
       setAds(data);
 
-      const allTags = new Set();
-      data.forEach((ad) => {
-        if (Array.isArray(ad.tags)) {
-          ad.tags.forEach((tag) => allTags.add(tag));
-        }
-      });
-      setTags(["Все", ...Array.from(allTags)]);
+      // УДАЛЯЕМ: логику извлечения и установки тегов
+      
     } catch (err) {
       console.error(err.message);
       setError(err.message);
       if (err.message.includes("Authentication")) {
-          // Если токен невалиден, перенаправляем на логин
           navigate("/login");
       }
     } finally {
@@ -99,16 +92,8 @@ const MyAds = ({ user }) => {
   };
 
 
-  const filteredAds = ads.filter((ad) => {
-    const contentMatch = `${ad.title} ${stripHtml(ad.content || "")} ${ad.location || ""}`
-      .toLowerCase()
-      .includes(query.toLowerCase());
-
-    const tagMatch =
-      tagFilter === "Все" || (ad.tags || []).includes(tagFilter);
-
-    return contentMatch && tagMatch;
-  });
+  // ИЗМЕНЯЕМ: filteredAds теперь просто равен ads, так как нет фильтрации по поиску/тегам
+  const filteredAds = ads; 
 
   const totalPages = Math.ceil(filteredAds.length / ADS_PER_PAGE);
   const startIndex = (currentPage - 1) * ADS_PER_PAGE;
@@ -158,72 +143,49 @@ const MyAds = ({ user }) => {
         </div>
       ) : (
         <>
-          {/* Блок фильтров (Поиск и Теги) */}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12">
-            
-            {/* SearchBar */}
-            <div className="w-full md:w-3/5">
-              <SearchBar query={query} setQuery={setQuery} />
-            </div>
-
-            {/* Фильтр по тегам (Категориям) */}
-            <div className="w-full md:w-2/5 relative">
-              <label htmlFor="tag-filter" className="sr-only">Фильтр по категориям</label>
-              <select
-                id="tag-filter"
-                className="w-full appearance-none px-4 py-3 bg-white border border-gray-200 
-                         rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-teal-400 
-                         text-base text-gray-800 transition duration-200"
-                value={tagFilter}
-                onChange={(e) => {
-                  setTagFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                {tags.map((tag) => (
-                  <option key={tag} value={tag}>
-                    {tag === "Все" ? "Все Категории" : tag}
-                  </option>
-                ))}
-              </select>
-              {/* Кастомная иконка для Select */}
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-teal-600">
-                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-              </div>
-            </div>
-          </div>
+          {/* УДАЛЯЕМ: Блок фильтров (Поиск и Теги) */}
+          {/* <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">...</div> */}
 
           {/* Отображение объявлений */}
           {filteredAds.length === 0 ? (
+            // Этот блок на самом деле никогда не должен показываться, если ads.length > 0, 
+            // но оставим для безопасности (если вдруг filteredAds по какой-то причине пуст)
             <div className="flex flex-col items-center justify-center text-center text-gray-600 mt-12 p-10 
                             bg-white border-2 border-dashed border-gray-300 rounded-2xl shadow-inner">
-              <p className="text-xl font-semibold mb-2">Объявления по вашему запросу не найдены.</p>
-              <p className="mb-4">Попробуйте использовать другие ключевые слова или сбросить фильтр категорий.</p>
+              <p className="text-xl font-semibold mb-2">Объявления не найдены.</p>
             </div>
           ) : (
             <>
               {/* Список объявлений (Сетка) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
-                {paginatedAds.map((ad) => (
-                  <AdCard
-                    key={ad._id}
-                    title={ad.title}
-                  image={ad.images?.[0] || ad.imageUrl || null}
-                    descriptionSnippet={stripHtml(ad.content)?.slice(0, 100) || ""}
-                    datePosted={new Date(ad.createdAt).toLocaleDateString('ru-RU')}
-                    location={ad.location}
-                    price={ad.price}
-                    tags={ad.tags || []}
-                    onCardClick={() => handleCardClick(ad._id)}
-                    onEdit={() => navigate(`/edit-ad/${ad._id}`)}
-                    onDelete={() => handleDelete(ad._id, ad.title)}
-                  />
-                ))}
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 mt-4">
+                {paginatedAds.map((ad) => {
+                  // Формируем строку локации: город/район + дополнительная информация
+                  const locationString = [
+                    ad.locationId?.name || null,
+                    ad.location || null
+                  ].filter(Boolean).join(", ") || "Не указано";
+
+                  return (
+                    <AdCard
+                      key={ad._id}
+                      title={ad.title}
+                      image={ad.images?.[0] || ad.imageUrl || null}
+                      descriptionSnippet={stripHtml(ad.content)?.slice(0, 100) || ""}
+                      datePosted={new Date(ad.createdAt).toLocaleDateString('ru-RU')}
+                      location={locationString}
+                      price={ad.price}
+                      tags={ad.tags || []}
+                      onCardClick={() => handleCardClick(ad._id)}
+                      onEdit={() => navigate(`/edit-ad/${ad._id}`)}
+                      onDelete={() => handleDelete(ad._id, ad.title)}
+                    />
+                  );
+                })}
               </div>
 
               {/* Пагинация */}
               {totalPages > 1 && (
-                <div className="flex justify-center items-center mt-16 space-x-2">
+                <div className="flex justify-center items-center mt-12 space-x-2">
                   <button
                     className="flex items-center gap-1 px-5 py-2.5 bg-white text-gray-700 rounded-xl font-semibold 
                                shadow-md hover:shadow-lg hover:bg-gray-100 transition duration-200 disabled:opacity-50 disabled:shadow-none"
@@ -234,6 +196,7 @@ const MyAds = ({ user }) => {
                     Предыдущая
                   </button>
 
+                  {/* Генерация кнопок пагинации */}
                   {Array.from({ length: totalPages }, (_, i) => (
                     <button
                       key={i}

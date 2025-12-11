@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import { FiLoader, FiTag, FiMapPin, FiArrowLeft, FiCalendar, FiPhone, FiChevronLeft, FiChevronRight } from 'react-icons/fi'; // Добавлена FiCalendar
+import { FiLoader, FiTag, FiMapPin, FiArrowLeft, FiCalendar, FiPhone, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import Breadcrumb from '../components/Breadcrumb';
 
 const AdView = () => {
   const { id } = useParams();
@@ -241,7 +242,12 @@ const AdView = () => {
           <div className="flex flex-wrap items-center gap-6 sm:gap-10 text-gray-600 mb-8">
             <div className="flex items-center gap-2">
               <FiMapPin className="w-6 h-6 text-teal-500" />
-              <span className="text-lg font-medium">{ad.location || 'Местоположение не указано'}</span>
+              <span className="text-lg font-medium">
+                {[
+                  ad.locationId?.name || null,
+                  ad.location || null
+                ].filter(Boolean).join(", ") || 'Местоположение не указано'}
+              </span>
             </div>
             {ad.phone && (
               <div className="flex items-center gap-2">

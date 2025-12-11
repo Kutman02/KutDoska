@@ -4,6 +4,7 @@ import React, { useState, useContext} from "react";
 import { Toaster } from "react-hot-toast";
 import { FiGrid, FiUser, FiList } from "react-icons/fi";
 import { AuthContext } from "../context/AuthContext";
+import Breadcrumb from "../components/Breadcrumb";
 
 // 💡 Импортируем разделенные компоненты
 import MyAds from "../components/DashboardTabs/MyAds";
@@ -46,11 +47,26 @@ const Dashboard = () => {
   }
 
 
+  // Формируем breadcrumb items в зависимости от активной вкладки
+  const getBreadcrumbItems = () => {
+    const items = [{ label: "Панель управления", path: "/dashboard" }];
+    if (activeTab === "ads") {
+      items.push({ label: "Мои объявления", path: "/dashboard?tab=ads" });
+    } else if (activeTab === "profile") {
+      items.push({ label: "Настройки профиля", path: "/dashboard?tab=profile" });
+    } else if (activeTab === "categories") {
+      items.push({ label: "Управление категориями", path: "/dashboard?tab=categories" });
+    }
+    return items;
+  };
+
   return (
     <>
       <Toaster position="top-right" />
       <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-6 bg-gray-50">
         <div className="max-w-screen-xl mx-auto py-8">
+          {/* Breadcrumb */}
+          <Breadcrumb items={getBreadcrumbItems()} />
           
           <h1 className="text-4xl font-extrabold text-gray-900 mb-6 hidden md:block">
             Панель Управления {user && user.role === "admin" && "(Администратор)"}

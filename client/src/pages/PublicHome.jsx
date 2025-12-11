@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext } from "react"; 
 import { useNavigate } from "react-router-dom";
 import AdCard from "../components/AdCard"; 
+import Breadcrumb from "../components/Breadcrumb";
 import toast, { Toaster } from "react-hot-toast";
 import { AuthContext } from "../context/AuthContext"; 
 
@@ -26,7 +27,9 @@ const PublicHome = () => {
   const [publicAds, setPublicAds] = useState([]);
   const [categories, setCategories] = useState([]); 
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null); 
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  const [subcategories, setSubcategories] = useState([]);
   const navigate = useNavigate();
   const { user } = useContext(AuthContext); 
   
@@ -42,9 +45,17 @@ const PublicHome = () => {
     const fetchPublicAds = async () => {
       setLoading(true);
       try {
-        // Добавляем параметр запроса, если выбрана категория
-        const categoryQuery = selectedCategory ? `?category=${selectedCategory}` : '';
-        const response = await fetch(`http://localhost:8080/api/ads/latest${categoryQuery}`); 
+        // Формируем параметры запроса
+        const params = new URLSearchParams();
+        if (selectedSubcategory) {
+          params.append('subcategory', selectedSubcategory);
+        } else if (selectedCategory) {
+          params.append('category', selectedCategory);
+        }
+        const queryString = params.toString();
+        const url = `http://localhost:8080/api/ads/latest${queryString ? `?${queryString}` : ''}`;
+        
+        const response = await fetch(url); 
         
         if (!response.ok) {
           const errorText = await response.text(); 
@@ -62,6 +73,30 @@ const PublicHome = () => {
     };
 
     fetchPublicAds();
+  }, [selectedCategory, selectedSubcategory]);
+
+  // Загрузка подкатегорий при выборе категории
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      if (selectedCategory) {
+        try {
+          const response = await fetch(`http://localhost:8080/api/categories/${selectedCategory}/subcategories`);
+          if (response.ok) {
+            const data = await response.json();
+            setSubcategories(data);
+          } else {
+            setSubcategories([]);
+          }
+        } catch (error) {
+          console.error("Ошибка при загрузке подкатегорий:", error);
+          setSubcategories([]);
+        }
+      } else {
+        setSubcategories([]);
+        setSelectedSubcategory(null);
+      }
+    };
+    fetchSubcategories();
   }, [selectedCategory]); 
 
 
@@ -85,7 +120,18 @@ const PublicHome = () => {
 
   // 3. 🖱️ ФУНКЦИЯ: Обработчик выбора категории
   const handleCategorySelect = (categoryId) => {
-    setSelectedCategory(prev => (prev === categoryId ? null : categoryId));
+    if (selectedCategory === categoryId) {
+      setSelectedCategory(null);
+      setSelectedSubcategory(null);
+    } else {
+      setSelectedCategory(categoryId);
+      setSelectedSubcategory(null);
+    }
+  };
+
+  // Обработчик выбора подкатегории
+  const handleSubcategorySelect = (subcategoryId) => {
+    setSelectedSubcategory(subcategoryId === selectedSubcategory ? null : subcategoryId);
   };
   
   // 4. 🗑️ ФУНКЦИЯ: Обработчик удаления объявления
@@ -174,11 +220,28 @@ const PublicHome = () => {
 
 
   // 6. 🖼️ ОСНОВНОЕ ОТОБРАЖЕНИЕ ОБЪЯВЛЕНИЙ
+  // Формируем breadcrumb items
+  const breadcrumbItems = [];
+  if (selectedCategory) {
+    const category = categories.find(c => c._id === selectedCategory);
+    if (category) {
+      breadcrumbItems.push({ label: category.name, path: `/?category=${selectedCategory}` });
+    }
+    if (selectedSubcategory) {
+      const subcategory = subcategories.find(s => s._id === selectedSubcategory);
+      if (subcategory) {
+        breadcrumbItems.push({ label: subcategory.name, path: `/?category=${selectedCategory}&subcategory=${selectedSubcategory}` });
+      }
+    }
+  }
+
   return (
     <>
       <Toaster position="top-right" />
       <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-8 bg-gray-50">
         <div className="max-w-screen-xl mx-auto py-8">
+          {/* Breadcrumb */}
+          <Breadcrumb items={breadcrumbItems} />
           
 
 
@@ -188,7 +251,7 @@ const PublicHome = () => {
                 <FeatherIcons.FiGlobe className="text-teal-600" />
                 Главные Категории
             </h2>
-            <div className="flex flex-wrap gap-4 justify-center">
+            <div className="flex flex-wrap gap-4 justify-center mb-6">
               {categories.map((cat) => {
                 const Icon = getIconComponent(cat.icon); 
                 const isActive = selectedCategory === cat._id;
@@ -204,18 +267,20 @@ const PublicHome = () => {
                                   : 'bg-white text-gray-700 hover:bg-teal-50 hover:text-teal-600'
                                 }`}
                   >
-                    {/* Icon — это компонент, возвращаемый getIconComponent */}
                     <Icon className="w-6 h-6 mb-2" />
                     <span className="font-semibold text-sm truncate w-full">{cat.name}</span>
                     <span className={`text-xs ${isActive ? 'text-teal-200' : 'text-gray-400'}`}>
-                      {cat.subcategories.length} подкатегорий
+                      {cat.subcategories?.length || 0} подкатегорий
                     </span>
                   </button>
                 );
               })}
               {/* Кнопка "Все объявления" (Сброс фильтра) */}
               <button
-                onClick={() => handleCategorySelect(null)}
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setSelectedSubcategory(null);
+                }}
                 className={`flex flex-col items-center p-4 rounded-xl shadow-lg 
                             transition-all duration-300 transform hover:scale-105 w-32 h-28 text-center
                             ${selectedCategory === null 
@@ -230,13 +295,52 @@ const PublicHome = () => {
                 </span>
               </button>
             </div>
+
+            {/* Блок Подкатегорий (если выбрана категория) */}
+            {selectedCategory && subcategories.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                  Подкатегории: {categories.find(c => c._id === selectedCategory)?.name}
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  {subcategories.map((sub) => {
+                    const isActive = selectedSubcategory === sub._id;
+                    return (
+                      <button
+                        key={sub._id}
+                        onClick={() => handleSubcategorySelect(sub._id)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                                    ${isActive 
+                                      ? 'bg-teal-600 text-white shadow-md' 
+                                      : 'bg-white text-gray-700 hover:bg-teal-50 border border-gray-200'
+                                    }`}
+                      >
+                        {sub.name}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => setSelectedSubcategory(null)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                                ${selectedSubcategory === null
+                                  ? 'bg-gray-600 text-white shadow-md'
+                                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                                }`}
+                  >
+                    Все подкатегории
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
           
           {/* Заголовок текущей ленты */}
           <h2 className="text-3xl font-extrabold text-gray-900 mb-6 border-b pb-2">
-            {selectedCategory 
-                ? `Объявления в категории: ${categories.find(c => c._id === selectedCategory)?.name}` 
-                : "Все Последние Объявления"
+            {selectedSubcategory 
+              ? subcategories.find(s => s._id === selectedSubcategory)?.name
+              : selectedCategory 
+                ? categories.find(c => c._id === selectedCategory)?.name
+                : "Последние Объявления"
             }
           </h2>
           
@@ -255,6 +359,12 @@ const PublicHome = () => {
               
               const cardClickHandler = () => navigate(`/ad-view/${ad._id}`);
               
+              // Формируем строку локации: город/район + дополнительная информация
+              const locationString = [
+                ad.locationId?.name || null,
+                ad.location || null
+              ].filter(Boolean).join(", ") || "Не указано";
+
               return (
                 <AdCard
                   key={ad._id}
@@ -264,7 +374,7 @@ const PublicHome = () => {
                   datePosted={new Date(ad.createdAt).toLocaleDateString('ru-RU')}
                   tags={ad.tags || []}
                   price={ad.price}
-                  location={ad.location}
+                  location={locationString}
                   categoryName={ad.category?.name || "Без категории"} 
                   
                   onCardClick={cardClickHandler} 

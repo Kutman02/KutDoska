@@ -4,7 +4,8 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import toast, { Toaster } from "react-hot-toast";
-import { FiSave, FiTag, FiImage, FiX, FiDollarSign, FiMapPin, FiMenu, FiPhone } from "react-icons/fi"; // Добавлена FiMenu
+import { FiSave, FiTag, FiImage, FiX, FiDollarSign, FiMapPin, FiMenu, FiPhone } from "react-icons/fi";
+import Breadcrumb from "../components/Breadcrumb";
 
 // Классы для стилизации кнопок Tiptap (Обновлено для Soft UI)
 const TiptapButtonClass = (isActive) => 
@@ -333,12 +334,24 @@ const EditAd = () => {
     );
   }
 
+  // Формируем breadcrumb items
+  const breadcrumbItems = [
+    { label: "Панель управления", path: "/dashboard" },
+    { label: "Мои объявления", path: "/dashboard?tab=ads" },
+    { label: title ? (title.length > 30 ? title.substring(0, 30) + "..." : title) : "Редактирование", path: `/edit-ad/${id}` }
+  ];
+
   return (
     <div className="min-h-screen p-4 sm:p-8 bg-gray-50"> {/* Светлый фон страницы */}
       <Toaster position="top-right" />
       {/* Главный контейнер Soft UI */}
       <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl shadow-gray-300/60 overflow-hidden">
         
+        {/* Breadcrumb */}
+        <div className="p-4 border-b border-gray-100">
+          <Breadcrumb items={breadcrumbItems} />
+        </div>
+
         {/* Заголовок Рабочей Области */}
         <header className="p-4 border-b border-gray-100 flex items-center gap-3">
             <FiMenu className="w-6 h-6 text-teal-500" />

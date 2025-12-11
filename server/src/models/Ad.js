@@ -23,6 +23,11 @@ const adSchema = new mongoose.Schema({
     trim: true,
     default: "Не указано",
   },
+  locationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Location",
+    default: null,
+  },
   phone: {
     type: String,
     trim: true,
@@ -32,6 +37,11 @@ const adSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category", 
     required: true,
+  },
+  subcategory: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
+    default: null,
   },
   user: { 
     type: mongoose.Schema.Types.ObjectId, 
