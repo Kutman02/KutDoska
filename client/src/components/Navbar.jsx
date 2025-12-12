@@ -85,7 +85,7 @@ const Navbar = () => {
               className="text-3xl cursor-pointer tracking-widest font-extrabold text-teal-600 hover:text-teal-500 transition duration-300"
               onClick={() => navigate("/")}
             >
-              BOARD.APP
+              KUTDOSKA
             </div>
 
             {/* Десктопная навигация */}

@@ -247,10 +247,6 @@ const PublicHome = () => {
 
           {/* Блок Категорий (Навигация) */}
           <section className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <FeatherIcons.FiGlobe className="text-teal-600" />
-                Главные Категории
-            </h2>
             <div className="flex flex-wrap gap-4 justify-center mb-6">
               {categories.map((cat) => {
                 const Icon = getIconComponent(cat.icon); 
@@ -340,7 +336,7 @@ const PublicHome = () => {
               ? subcategories.find(s => s._id === selectedSubcategory)?.name
               : selectedCategory 
                 ? categories.find(c => c._id === selectedCategory)?.name
-                : "Последние Объявления"
+                : "Новые объявления"
             }
           </h2>
           
