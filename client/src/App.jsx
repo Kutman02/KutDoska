@@ -1,3 +1,4 @@
+// src/App.jsx
 import { Route, Routes } from "react-router-dom";
 import "./App.css";
 import Dashboard from "./pages/Dashboard";
@@ -12,7 +13,9 @@ import { useContext, useEffect } from "react";
 import { AuthContext } from "./context/AuthContext";
 import PublicHome from "./pages/PublicHome";
 import AdView from "./pages/AdView";
-
+// 💡 НОВЫЙ ИМПОРТ: Страница "Избранное"
+import Favorites from "./pages/Favorites"; 
+import Chats from "./pages/chats";
 
 
 function App() {
@@ -29,23 +32,28 @@ function App() {
     <>
     <Toaster position="top-right" />
       <Navbar />
-      {/* Главный контейнер для контента:
-        - min-h-screen на мобильных, pb-20 (отступ для нижней панели).
-        - md:min-h-[calc(100vh-4rem)] на десктопе (учитываем верхнюю панель), md:pb-0 (убираем нижний отступ).
-      */}
+      {/* Главный контейнер для контента */}
       <div className="min-h-screen md:min-h-[calc(100vh-4rem)] bg-gray-50 pb-20 md:pb-0"> 
           <Routes>
             <Route path="/" element={<PublicHome />} />
             <Route path="/ad-view/:id" element={<AdView />} />
+            
+            {/* 🔒 ЗАЩИЩЕННЫЕ МАРШРУТЫ */}
             <Route path="/dashboard" element={
               <PrivateRoute>
                 <Dashboard />
               </PrivateRoute>
             } />
             <Route path="/create" element={<PrivateRoute><CreateAd /></PrivateRoute>} />
+            <Route path="/edit-ad/:id" element={<PrivateRoute><EditAd /></PrivateRoute>} />
+            
+            {/* 💡 НОВЫЙ ЗАЩИЩЕННЫЙ МАРШРУТ: Избранное */}
+            <Route path="/favorites" element={<PrivateRoute><Favorites /></PrivateRoute>} />
+            <Route path="/chats" element={<PrivateRoute><Chats /></PrivateRoute>} />
+
+            {/* 🌐 ПУБЛИЧНЫЕ МАРШРУТЫ */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/edit-ad/:id" element={<PrivateRoute><EditAd /></PrivateRoute>} />
           </Routes>
       </div>
     </>

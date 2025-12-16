@@ -1,19 +1,22 @@
+// src/components/AdCard.jsx
+
 import React from 'react';
-import { FiEdit, FiTrash2, FiMapPin, FiHeart } from 'react-icons/fi';
-// FiCalendar и FiDollarSign не нужны, так как мы используем обычный текст для даты и символы
-// В Lalafo часто используются значки PRO/VIP, но мы добавим только Фи избранное.
+// Добавляем FiUser для отображения владельца (если нужно, хотя тут не используется)
+import { FiEdit, FiTrash2, FiMapPin, FiHeart } from 'react-icons/fi'; 
 
 const AdCard = ({ 
+  adId, // НОВЫЙ ПРОПС: ID объявления для работы с избранным
   title, 
   image, 
-  // descriptionSnippet удален для компактности
   datePosted, 
-  // tags удален
   price, 
   location, 
   onCardClick, 
   onEdit, 
-  onDelete 
+  onDelete,
+  // НОВЫЕ ПРОПСЫ ДЛЯ ИЗБРАННОГО
+  isFavorite, 
+  onToggleFavorite 
 }) => {
 
   // Функция форматирования цены
@@ -43,8 +46,21 @@ const AdCard = ({
         className="w-full h-36 overflow-hidden rounded-t-lg relative bg-gray-100"
       >
         {/* Кнопка "Избранное" в стиле Lalafo (белая полупрозрачная) */}
-        <button className="absolute top-2 right-2 z-10 p-1 rounded-full bg-white/70 hover:bg-white text-gray-700/80 hover:text-red-500 transition-colors shadow">
-          <FiHeart className="w-5 h-5" />
+        {/* Используем adId и onToggleFavorite */}
+        <button 
+          onClick={(e) => {
+            e.stopPropagation(); // Останавливаем onCardClick
+            onToggleFavorite && onToggleFavorite(adId);
+          }}
+          className={`absolute top-2 right-2 z-10 p-1 rounded-full shadow transition-colors
+                     ${isFavorite 
+                        ? 'bg-red-500 text-white hover:bg-red-600' // Если в избранном
+                        : 'bg-white/70 text-gray-700/80 hover:bg-white hover:text-red-500' // Если не в избранном
+                     }`}
+          title={isFavorite ? "Удалить из избранного" : "Добавить в избранное"}
+        >
+          {/* Заполняем сердце, если оно в избранном */}
+          <FiHeart className="w-5 h-5" fill={isFavorite ? 'currentColor' : 'none'} />
         </button>
 
         {image ? (
@@ -83,7 +99,7 @@ const AdCard = ({
             <span className="ml-auto">· {datePosted}</span>
         </div>
         
-        {/* Кнопки действий владельца (Если нужно, можно сделать иконками) */}
+        {/* Кнопки действий владельца */}
         {isOwner && (
           <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-gray-100">
             {onEdit && (

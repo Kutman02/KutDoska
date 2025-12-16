@@ -1,8 +1,8 @@
-// src/components/DashboardTabs/ProfileSettings.jsx
-
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+// Импорт иконок
 import { FiUser, FiSettings, FiCamera } from "react-icons/fi";
+import { FaRegUserCircle } from "react-icons/fa"; // Иконка для заглушки профиля
 
 const ProfileSettings = ({ user }) => {
     const [name, setName] = useState(user?.name || "");
@@ -10,7 +10,10 @@ const ProfileSettings = ({ user }) => {
     const [phone, setPhone] = useState(user?.phone || "");
     const [about, setAbout] = useState("");
     const [profileImageUrl, setProfileImageUrl] = useState("");
-    const [previewImage, setPreviewImage] = useState(user?.profileImageUrl || "https://via.placeholder.com/150?text=Profile");
+    
+    // 💡 ИЗМЕНЕНО: Инициализируем либо URL, либо null для отображения иконки по умолчанию
+    const [previewImage, setPreviewImage] = useState(user?.profileImageUrl || null); 
+    
     const [loading, setLoading] = useState(false);
 
     // Загрузка сохранённых настроек профиля
@@ -33,7 +36,10 @@ const ProfileSettings = ({ user }) => {
                 setPhone(data.phone || user?.phone || "");
                 setAbout(data.about || "");
                 setProfileImageUrl(data.profileImageUrl || "");
-                if (data.profileImageUrl) setPreviewImage(data.profileImageUrl);
+                
+                // 💡 ИЗМЕНЕНО: Если URL есть, обновляем previewImage, иначе он останется null (иконка)
+                setPreviewImage(data.profileImageUrl || null); 
+                
             } catch (err) {
                 console.error("Ошибка загрузки профиля:", err);
                 toast.error("Не удалось загрузить профиль");
@@ -56,7 +62,9 @@ const ProfileSettings = ({ user }) => {
         formData.append("file", file);
         try {
             setLoading(true);
-            const res = await fetch("http://localhost:8080/api/upload/ad-image", {
+            // 💡 ПРИМЕЧАНИЕ: Этот эндпоинт используется для объявления.
+            // Убедитесь, что он возвращает правильный URL и подходит для аватаров.
+            const res = await fetch("http://localhost:8080/api/upload/ad-image", { 
                 method: "POST",
                 body: formData,
             });
@@ -91,7 +99,7 @@ const ProfileSettings = ({ user }) => {
                     displayName: name,
                     phone,
                     about,
-                    profileImageUrl,
+                    profileImageUrl, // Отправляем новый или существующий URL
                 }),
             });
 
@@ -120,12 +128,22 @@ const ProfileSettings = ({ user }) => {
                 {/* Загрузка Фото Профиля */}
                 <div className="flex flex-col items-center mb-8">
                     <div className="relative w-32 h-32 mb-4">
-                        <img 
-                            src={previewImage} 
-                            alt="Профиль" 
-                            className="w-full h-full object-cover rounded-full ring-4 ring-teal-500/50 shadow-lg"
-                        />
-                        <label htmlFor="profile-upload" className="absolute bottom-0 right-0 p-2 bg-teал-500 text-white rounded-full cursor-pointer hover:bg-teal-600 transition shadow-lg shadow-teal-400/50">
+                        
+                        {/* 💡 ИЗМЕНЕНИЕ: УСЛОВНЫЙ РЕНДЕРИНГ ДЛЯ ИКОНКИ ПО УМОЛЧАНИЮ */}
+                        {previewImage ? (
+                            <img 
+                                src={previewImage} 
+                                alt="Профиль" 
+                                className="w-full h-full object-cover rounded-full ring-4 ring-teal-500/50 shadow-lg"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center rounded-full ring-4 ring-teal-500/50 shadow-lg bg-gray-100">
+                                {/* Иконка FaRegUserCircle, используемая как заглушка */}
+                                <FaRegUserCircle className="w-20 h-20 text-gray-400" />
+                            </div>
+                        )}
+
+                        <label htmlFor="profile-upload" className="absolute bottom-0 right-0 p-2 bg-teal-600 text-white rounded-full cursor-pointer hover:bg-teal-700 transition shadow-lg shadow-teal-400/50">
                             <FiCamera className="w-5 h-5" />
                             <input
                                 id="profile-upload"
@@ -191,7 +209,7 @@ const ProfileSettings = ({ user }) => {
                     type="submit"
                     disabled={loading}
                     className="mt-8 w-full flex items-center justify-center gap-2 bg-teal-600 text-white px-6 py-3 rounded-xl font-semibold 
-                               shadow-lg shadow-teал-400/50 hover:bg-teal-700 transition transform hover:-translate-y-0.5 disabled:opacity-60"
+                               shadow-lg shadow-teal-400/50 hover:bg-teal-700 transition transform hover:-translate-y-0.5 disabled:opacity-60"
                 >
                     <FiSettings className="w-5 h-5" /> {loading ? "Сохранение..." : "Сохранить изменения"}
                 </button>

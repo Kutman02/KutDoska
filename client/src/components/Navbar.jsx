@@ -10,9 +10,9 @@ const BottomNav = ({ isLoggedIn, navigate }) => {
     // Определяем иконки и маршруты для нижней панели
     const navItems = [
         { name: "Домой", icon: FiHome, path: "/" },
-        { name: "Избранное", icon: FiHeart, path: isLoggedIn ? "/dashboard" : "/login" }, 
+        { name: "Избранное", icon: FiHeart, path: isLoggedIn ? "/favorites" : "/login" }, 
         { name: "Подать", icon: FiPlusSquare, path: "/create", isAccent: true }, 
-        { name: "Чаты", icon: FiMessageSquare, path: isLoggedIn ? "/dashboard" : "/login" },
+        { name: "Чаты", icon: FiMessageSquare, path: isLoggedIn ? "/chats" : "/login" },
         { name: "Профиль", icon: FiUser, path: isLoggedIn ? "/dashboard" : "/login" },
     ];
 
@@ -94,20 +94,20 @@ const Navbar = () => {
                 <>
                   {/* ИЗБРАННОЕ */}
                   <Link
-                    to="/dashboard"
+                    to="/favorites"
                     className="text-gray-700 hover:text-teal-600 transition duration-200 flex items-center gap-1 p-2 rounded-lg hover:bg-teal-50 hover:shadow-inner"
                   >
                     <FiHeart className="w-5 h-5" />
-                    Избранное
+                    
                   </Link>
 
                   {/* ЧАТЫ */}
                   <Link
-                    to="/dashboard"
+                    to="/chats"
                     className="text-gray-700 hover:text-teal-600 transition duration-200 flex items-center gap-1 p-2 rounded-lg hover:bg-teal-50 hover:shadow-inner"
                   >
                     <FiMessageSquare className="w-5 h-5" />
-                    Чаты
+                
                   </Link>
 
 

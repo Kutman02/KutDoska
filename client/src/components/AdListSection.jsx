@@ -1,0 +1,120 @@
+// src/components/AdListSection.jsx
+
+import React from 'react';
+import * as FeatherIcons from "react-icons/fi"; 
+import AdCard from "./AdCard"; // Убедитесь, что путь правильный
+
+// Вспомогательная функция, которая была в PublicHome
+const stripHtml = (html) => {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+};
+
+/**
+ * Компонент для отображения списка объявлений и управления заголовком ленты.
+ * * @param {object} props
+ * @param {Array} props.publicAds - Массив объявлений для отображения.
+ * @param {string|null} props.selectedCategory - ID выбранной категории.
+ * @param {string|null} props.selectedSubcategory - ID выбранной подкатегории.
+ * @param {Array} props.categories - Список всех категорий.
+ * @param {Array} props.subcategories - Список подкатегорий текущей категории.
+ * @param {function} props.handleCategorySelect - Обработчик сброса фильтров.
+ * @param {object} props.user - Объект текущего пользователя для проверки владельца.
+ * @param {function} props.navigate - Функция навигации.
+ * @param {function} props.isFavorite - Функция проверки избранного.
+ * @param {function} props.toggleFavorite - Функция переключения избранного.
+ * @param {function} props.handleDelete - Функция удаления объявления.
+ */
+const AdListSection = ({ 
+    publicAds, 
+    selectedCategory, 
+    selectedSubcategory, 
+    categories, 
+    subcategories, 
+    handleCategorySelect, 
+    user, 
+    navigate, 
+    isFavorite,
+    toggleFavorite,
+    handleDelete
+}) => {
+
+    // Вычисление заголовка текущей ленты
+    const currentTitle = selectedSubcategory 
+        ? subcategories.find(s => s._id === selectedSubcategory)?.name
+        : selectedCategory 
+          ? categories.find(c => c._id === selectedCategory)?.name
+          : "Новые объявления";
+
+    return (
+        <>
+            {/* Заголовок текущей ленты */}
+            <div className="flex justify-between items-end mb-6 border-b pb-2">
+                <h2 className="text-3xl font-extrabold text-gray-900">
+                    {currentTitle}
+                </h2>
+                {/* Кнопка сброса фильтра, если что-то выбрано */}
+                {(selectedCategory || selectedSubcategory) && (
+                    <button 
+                      onClick={() => handleCategorySelect(null)} // Используем общий обработчик для сброса
+                      className="text-teal-600 hover:text-teal-800 text-sm font-medium mb-1"
+                    >
+                        Сбросить фильтры
+                    </button>
+                )}
+            </div>
+            
+            {/* Пустое состояние */}
+            {publicAds.length === 0 ? (
+               <div className="flex flex-col items-center justify-center py-20 text-center">
+                   <FeatherIcons.FiInbox className="w-16 h-16 text-gray-300 mb-4" />
+                   <h3 className="text-xl font-semibold text-gray-600">Объявлений пока нет</h3>
+                   <p className="text-gray-500">Попробуйте выбрать другую категорию</p>
+               </div>
+            ) : (
+              /* Сетка объявлений */
+              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-6">
+                  {publicAds.map((ad) => {
+                      // Логика проверки владельца перенесена сюда
+                      const isOwner = user?._id && (user._id === (ad.user?._id || ad.user)); 
+                      
+                      // 🚨 ИСПРАВЛЕНИЕ: Вычисление полного адреса для AdCard
+                      const fullLocation = [
+                          // 1. Берем название местоположения из связанного ID (например, Город)
+                          ad.locationId?.name || null,
+                          // 2. Берем строковое поле адреса (например, Улица)
+                          ad.location || null
+                      ]
+                      // Фильтруем пустые значения (null) и объединяем их через запятую
+                      .filter(Boolean)
+                      .join(", ");
+                      
+                      return (
+                          <AdCard
+                          key={ad._id}
+                          adId={ad._id} 
+                          title={ad.title}
+                          image={ad.images?.[0] || ad.imageUrl} 
+                          descriptionSnippet={stripHtml(ad.content)?.slice(0, 100)} 
+                          datePosted={new Date(ad.createdAt).toLocaleDateString('ru-RU')}
+                          tags={ad.tags || []}
+                          price={ad.price}
+                          // 🚨 ПЕРЕДАЕМ ИСПРАВЛЕННЫЙ АДРЕС ВМЕСТО ad.location 🚨
+                          location={fullLocation}
+                          categoryName={ad.category?.name} 
+                          onCardClick={() => navigate(`/ad-view/${ad._id}`)} 
+                          onEdit={isOwner ? () => navigate(`/edit-ad/${ad._id}`) : null}
+                          onDelete={isOwner ? () => handleDelete(ad._id) : null} 
+                          isFavorite={isFavorite(ad._id)}
+                          onToggleFavorite={toggleFavorite}
+                          />
+                      );
+                  })}
+              </div>
+            )}
+        </>
+    );
+};
+
+export default AdListSection;

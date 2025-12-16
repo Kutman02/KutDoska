@@ -231,9 +231,6 @@ const CreateAd = () => {
   return (
     <div className="min-h-screen p-4 sm:p-8 bg-gray-50">
       <div className="max-w-3xl mx-auto">
-        {/* Breadcrumb */}
-        <Breadcrumb items={[{ label: "Создать объявление", path: "/create" }]} />
-        
         <h2 className="text-3xl font-extrabold text-gray-900 mb-8 pb-2">
           Новое Объявление
         </h2>

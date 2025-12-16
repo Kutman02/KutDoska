@@ -7,8 +7,10 @@ import userRouter from "./routes/userRoute.js";
 import adsRouter from "./routes/adsRoutes.js";
 import categoryRouter from "./routes/categoryRoutes.js";
 import locationRouter from "./routes/locationRoutes.js";
+// 💡 НОВЫЙ ИМПОРТ МАРШРУТОВ ИЗБРАННОГО
+import favoriteRouter from "./routes/favoriteRoutes.js"; 
 import { upload } from "./middleware/multer.js";
-import cloudinaryUpload from "./utils/cloudinary.js"; // Утилита, которая теперь принимает буфер
+import cloudinaryUpload from "./utils/cloudinary.js"; 
 
 dotenv.config();
 
@@ -39,6 +41,9 @@ app.use("/api/auth", userRouter);
 app.use("/api/ads", adsRouter); 
 app.use("/api/categories", categoryRouter);
 app.use("/api/locations", locationRouter); 
+// 💡 НОВЫЙ МАРШРУТ: Избранное
+app.use("/api/favorites", favoriteRouter);
+
 
 // Маршрут для загрузки изображений
 app.post("/api/upload/ad-image", upload.single("file"), async (req, res) => {
@@ -46,7 +51,6 @@ app.post("/api/upload/ad-image", upload.single("file"), async (req, res) => {
         return res.status(400).json({ error: "No file uploaded" });
     }
     try {
-        // 💡 КОРРЕКТИРОВКА: Передаем буфер и MIME-тип, а не req.file.path
         const result = await cloudinaryUpload(req.file.buffer, req.file.mimetype); 
 
         if (!result) {
