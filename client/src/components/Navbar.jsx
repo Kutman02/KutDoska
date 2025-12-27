@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FiLogOut, FiPlusSquare, FiUser, FiHome, FiLogIn, FiHeart, FiMessageSquare, FiLayout } from "react-icons/fi";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 // --- Компонент Нижней Навигации для Мобильных Устройств ---
-const BottomNav = ({ isLoggedIn, navigate }) => {
+const BottomNav = ({ isLoggedIn, navigate, favoritesCount = 0 }) => {
     const location = useLocation();
     
     // Определяем иконки и маршруты для нижней панели
@@ -43,12 +43,17 @@ const BottomNav = ({ isLoggedIn, navigate }) => {
                         <Link
                             key={item.name}
                             to={item.path}
-                            className={`flex flex-col items-center p-2 rounded-xl transition duration-200 ${
+                            className={`flex flex-col items-center p-2 rounded-xl transition duration-200 relative ${
                                 isActive ? activeClass : inactiveClass
                             }`}
                         >
                             <item.icon className="w-6 h-6" />
                             <span className="text-xs mt-0.5">{item.name}</span>
+                            {item.name === "Избранное" && isLoggedIn && favoritesCount > 0 && (
+                              <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                {favoritesCount > 99 ? '99+' : favoritesCount}
+                              </span>
+                            )}
                         </Link>
                     );
                 })}
@@ -60,11 +65,55 @@ const BottomNav = ({ isLoggedIn, navigate }) => {
 
 
 const Navbar = () => {
-  const [dropdownOpen, setDropdownOpen] = useState(false); 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [favoritesCount, setFavoritesCount] = useState(0);
   const navigate = useNavigate();
 
   const { user, logout } = useAuth();
   const isLoggedIn = !!user;
+
+  // Загрузка количества избранных объявлений
+  const fetchFavoritesCount = async () => {
+    if (!isLoggedIn) {
+      setFavoritesCount(0);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch("http://localhost:8080/api/favorites", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFavoritesCount(data.length || 0);
+      }
+    } catch (error) {
+      console.error("Ошибка загрузки избранного:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchFavoritesCount();
+    // Обновляем счетчик каждые 30 секунд
+    const interval = setInterval(fetchFavoritesCount, 30000);
+    
+    // Слушаем события обновления избранного
+    const handleFavoritesUpdate = () => {
+      fetchFavoritesCount();
+    };
+    window.addEventListener('favoritesUpdated', handleFavoritesUpdate);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('favoritesUpdated', handleFavoritesUpdate);
+    };
+  }, [isLoggedIn]);
 
   const handleLogout = () => {
     logout();
@@ -95,10 +144,14 @@ const Navbar = () => {
                   {/* ИЗБРАННОЕ */}
                   <Link
                     to="/favorites"
-                    className="text-gray-700 hover:text-teal-600 transition duration-200 flex items-center gap-1 p-2 rounded-lg hover:bg-teal-50 hover:shadow-inner"
+                    className="text-gray-700 hover:text-teal-600 transition duration-200 flex items-center gap-1 p-2 rounded-lg hover:bg-teal-50 hover:shadow-inner relative"
                   >
                     <FiHeart className="w-5 h-5" />
-                    
+                    {/* {favoritesCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                        {favoritesCount > 99 ? '99+' : favoritesCount}
+                      </span>
+                    )} */}
                   </Link>
 
                   {/* ЧАТЫ */}
@@ -191,7 +244,7 @@ const Navbar = () => {
       </nav>
       
       {/* 2. Нижняя панель навигации (Только для мобильных, md:hidden) */}
-      <BottomNav isLoggedIn={isLoggedIn} navigate={navigate} />
+      <BottomNav isLoggedIn={isLoggedIn} navigate={navigate} favoritesCount={favoritesCount} />
     </>
   );
 };

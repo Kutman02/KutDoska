@@ -80,6 +80,8 @@ const useFavorites = () => {
                     newIds.add(adId);
                     toast.success("Добавлено в избранное!");
                 }
+                // Отправляем событие для обновления счетчика в Navbar
+                window.dispatchEvent(new Event('favoritesUpdated'));
                 return newIds;
             });
             

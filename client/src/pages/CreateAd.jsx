@@ -13,13 +13,13 @@ const CreateAd = () => {
   const navigate = useNavigate();
   
   // Состояния
-  const [title, setTitle] = useState("");
-  // ИЗМЕНЕНИЕ 1: description теперь пустая строка. Плейсхолдер управляется AdEditor.
+  // ИЗМЕНЕНИЕ: убрали title, оставили только description (теперь называется "Описание")
   const [description, setDescription] = useState(""); 
   const [price, setPrice] = useState("");
   const [location, setLocation] = useState("");
   // ИЗМЕНЕНИЕ 2: Устанавливаем дефолтное значение для номера телефона
   const [phone, setPhone] = useState("+996"); 
+  const [hidePhone, setHidePhone] = useState(false);
   const [images, setImages] = useState([]); 
   const [loading, setLoading] = useState(false);
   
@@ -181,20 +181,43 @@ const CreateAd = () => {
     e.preventDefault();
 
     // Проверка обязательных полей
-    if (!title.trim() || !description.trim() || !price.trim() || !selectedCategoryId) { 
-      toast.error("Заполните обязательные поля (Заголовок, Описание, Цена, Категория)");
+    if (!description.trim()) {
+      toast.error("Описание объявления обязательно");
+      return;
+    }
+
+    if (images.length === 0) {
+      toast.error("Необходимо загрузить хотя бы одно изображение");
+      return;
+    }
+
+    if (!selectedCategoryId) {
+      toast.error("Необходимо выбрать категорию");
       return;
     }
 
     // Если есть подкатегории, подкатегория обязательна
     if (subcategories.length > 0 && !selectedSubcategoryId) {
-      toast.error("Пожалуйста, выберите подкатегорию");
+      toast.error("Необходимо выбрать подкатегорию");
+      return;
+    }
+
+    if (!selectedCityId) {
+      toast.error("Необходимо выбрать город");
+      return;
+    }
+
+    if (!phone || phone.trim() === "" || phone === "+996") {
+      toast.error("Необходимо указать номер телефона");
       return;
     }
 
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
+      
+      // Обработка цены: если пусто или 0, отправляем 0 (будет "Договорная")
+      const finalPrice = price && parseFloat(price) > 0 ? parseFloat(price) : 0;
       
       const response = await fetch("http://localhost:8080/api/ads", {
           method: "POST",
@@ -203,12 +226,14 @@ const CreateAd = () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            title,
+            // Генерируем title из первых 100 символов описания для совместимости
+            title: description.trim().substring(0, 100) || "Объявление",
             content: description,
-            price: parseFloat(price),
+            price: finalPrice,
             location,
-            locationId: selectedDistrictId || selectedCityId || null,
+            locationId: selectedDistrictId || selectedCityId,
             phone,
+            hidePhone,
             images,
             imageUrl: images[0] || "",
             tags: [], 
@@ -240,7 +265,7 @@ const CreateAd = () => {
           {/* 1. ФОТОГРАФИИ */}
           <div className="w-full">
             <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-              Фотографии
+              Фотографии <span className="text-red-500">*</span>
             </label>
             <ImageUploader 
                 images={images} 
@@ -251,36 +276,19 @@ const CreateAd = () => {
 
           <hr className="border-gray-100" />
 
-          {/* 2. ЗАГОЛОВОК и ОПИСАНИЕ */}
-          <div className="space-y-4">
-             <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                  Заголовок объявления
-                </label>
-                <input
-                    type="text"
-                    placeholder="Например: iPhone 12 Pro Max 256GB"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-4 py-3 text-lg font-medium bg-gray-50 rounded-xl border border-gray-200 focus:bg-white focus:ring-2 focus:ring-teal-400 outline-none transition"
-                    required
-                />
-             </div>
-
-             <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                  Подробное описание
-                </label>
-                {/* description теперь пустой, AdEditor управляет плейсхолдером */}
-                <AdEditor content={description} onChange={setDescription} />
-             </div>
+          {/* 2. ОПИСАНИЕ */}
+          <div>
+             <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
+               Описание <span className="text-red-500">*</span>
+             </label>
+             <AdEditor content={description} onChange={setDescription} />
           </div>
 
           {/* 3. КАТЕГОРИЯ И ПОДКАТЕГОРИЯ */}
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                  Категория {selectedCategoryId && subcategories.length > 0 && <span className="text-red-500">*</span>}
+                  Категория <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
                   <FiBriefcase className="w-5 h-5 text-teal-500" />
@@ -329,7 +337,7 @@ const CreateAd = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                  Город
+                  Город <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
                   <FiMapPin className="w-5 h-5 text-teal-500" />
@@ -337,6 +345,7 @@ const CreateAd = () => {
                     value={selectedCityId}
                     onChange={handleCityChange}
                     className="w-full bg-transparent outline-none cursor-pointer text-gray-700"
+                    required
                   >
                     <option value="">Выберите город</option>
                     {locations.map(city => <option key={city._id} value={city._id}>{city.name}</option>)}
@@ -391,29 +400,43 @@ const CreateAd = () => {
                 <TbCircleLetterC className="w-5 h-5 text-teal-500" />
                 <input 
                     type="number" 
-                    placeholder="0" 
+                    placeholder="Договорная" 
                     value={price} 
                     onChange={e => setPrice(e.target.value)} 
                     className="w-full bg-transparent outline-none font-medium" 
-                    required 
+                    min="0"
                 />
             </div>
+            {/* <p className="text-xs text-gray-500 mt-1 ml-1">Если не указано или 0, будет отображаться "Договорная"</p> */}
           </div>
 
           {/* 6. НОМЕР ТЕЛЕФОНА */}
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                Номер телефона
+                Номер телефона <span className="text-red-500">*</span>
             </label>
             <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
                 <FiPhone className="w-5 h-5 text-teal-500" />
                 <input 
                     type="tel" 
-                    placeholder="555 00 00 00" // Меняем плейсхолдер
+                    placeholder="555 00 00 00"
                     value={phone} 
-                    onChange={handlePhoneChange} // ИСПОЛЬЗУЕМ НОВЫЙ ОБРАБОТЧИК
+                    onChange={handlePhoneChange}
                     className="w-full bg-transparent outline-none" 
+                    required
                 />
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="hidePhone"
+                checked={hidePhone}
+                onChange={(e) => setHidePhone(e.target.checked)}
+                className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+              />
+              <label htmlFor="hidePhone" className="text-sm text-gray-700 cursor-pointer">
+                Скрыть номер телефона
+              </label>
             </div>
           </div>
 

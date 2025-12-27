@@ -25,6 +25,8 @@ const stripHtml = (html) => {
  * @param {function} props.isFavorite - Функция проверки избранного.
  * @param {function} props.toggleFavorite - Функция переключения избранного.
  * @param {function} props.handleDelete - Функция удаления объявления.
+ * @param {string} props.searchQuery - Текущий поисковый запрос.
+ * @param {function} props.onSearchClear - Обработчик сброса поиска.
  */
 const AdListSection = ({ 
     publicAds, 
@@ -37,27 +39,41 @@ const AdListSection = ({
     navigate, 
     isFavorite,
     toggleFavorite,
-    handleDelete
+    handleDelete,
+    searchQuery = "",
+    onSearchClear
 }) => {
 
     // Вычисление заголовка текущей ленты
-    const currentTitle = selectedSubcategory 
-        ? subcategories.find(s => s._id === selectedSubcategory)?.name
-        : selectedCategory 
-          ? categories.find(c => c._id === selectedCategory)?.name
-          : "Новые объявления";
+    const currentTitle = searchQuery && searchQuery.trim()
+        ? `Результаты поиска: "${searchQuery}"`
+        : selectedSubcategory 
+          ? subcategories.find(s => s._id === selectedSubcategory)?.name
+          : selectedCategory 
+            ? categories.find(c => c._id === selectedCategory)?.name
+            : "Новые объявления";
 
     return (
         <>
             {/* Заголовок текущей ленты */}
             <div className="flex justify-between items-end mb-6 border-b pb-2">
-                <h2 className="text-3xl font-extrabold text-gray-900">
-                    {currentTitle}
-                </h2>
+                <div>
+                    <h2 className="text-3xl font-extrabold text-gray-900">
+                        {currentTitle}
+                    </h2>
+                    {publicAds.length > 0 && (
+                        <p className="text-sm text-gray-500 mt-1">
+                            Найдено объявлений: {publicAds.length}
+                        </p>
+                    )}
+                </div>
                 {/* Кнопка сброса фильтра, если что-то выбрано */}
-                {(selectedCategory || selectedSubcategory) && (
+                {(selectedCategory || selectedSubcategory || (searchQuery && searchQuery.trim())) && (
                     <button 
-                      onClick={() => handleCategorySelect(null)} // Используем общий обработчик для сброса
+                      onClick={() => {
+                        handleCategorySelect(null);
+                        if (onSearchClear) onSearchClear();
+                      }}
                       className="text-teal-600 hover:text-teal-800 text-sm font-medium mb-1"
                     >
                         Сбросить фильтры
@@ -69,8 +85,16 @@ const AdListSection = ({
             {publicAds.length === 0 ? (
                <div className="flex flex-col items-center justify-center py-20 text-center">
                    <FeatherIcons.FiInbox className="w-16 h-16 text-gray-300 mb-4" />
-                   <h3 className="text-xl font-semibold text-gray-600">Объявлений пока нет</h3>
-                   <p className="text-gray-500">Попробуйте выбрать другую категорию</p>
+                   <h3 className="text-xl font-semibold text-gray-600">
+                       {searchQuery && searchQuery.trim() 
+                           ? `По запросу "${searchQuery}" ничего не найдено`
+                           : "Объявлений пока нет"}
+                   </h3>
+                   <p className="text-gray-500">
+                       {searchQuery && searchQuery.trim()
+                           ? "Попробуйте изменить поисковый запрос или выбрать другую категорию"
+                           : "Попробуйте выбрать другую категорию"}
+                   </p>
                </div>
             ) : (
               /* Сетка объявлений */
@@ -94,7 +118,7 @@ const AdListSection = ({
                           <AdCard
                           key={ad._id}
                           adId={ad._id} 
-                          title={ad.title}
+                          title={ad.content || ad.title || ""}
                           image={ad.images?.[0] || ad.imageUrl} 
                           descriptionSnippet={stripHtml(ad.content)?.slice(0, 100)} 
                           datePosted={new Date(ad.createdAt).toLocaleDateString('ru-RU')}
@@ -108,6 +132,9 @@ const AdListSection = ({
                           onDelete={isOwner ? () => handleDelete(ad._id) : null} 
                           isFavorite={isFavorite(ad._id)}
                           onToggleFavorite={toggleFavorite}
+                          author={ad.user}
+                          onAuthorClick={(userId) => navigate(`/user/${userId}`)}
+                          views={ad.views}
                           />
                       );
                   })}

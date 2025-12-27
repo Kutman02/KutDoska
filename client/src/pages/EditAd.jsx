@@ -71,14 +71,22 @@ const EditAd = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [location, setLocation] = useState("");
   const [phone, setPhone] = useState("");
+  const [hidePhone, setHidePhone] = useState(false);
   const [tags, setTags] = useState("");
   const [images, setImages] = useState([]); // Массив для нескольких изображений
   const [activeTab, setActiveTab] = useState("content"); 
   const [loading, setLoading] = useState(false);
+  
+  // Категории и локации
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [subcategories, setSubcategories] = useState([]);
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
+  const [locations, setLocations] = useState([]);
+  const [selectedCityId, setSelectedCityId] = useState("");
 
   const editor = useEditor({
     extensions: [
@@ -109,12 +117,16 @@ const EditAd = () => {
         if (!res.ok) throw new Error("Failed to fetch advertisement");
 
         const data = await res.json();
-        setTitle(data.title || "");
+        // Title больше не используется в форме
         setPrice(data.price?.toString() || "");
         setLocation(data.location || "");
         setPhone(data.phone || "");
+        setHidePhone(data.hidePhone || false);
         setTags(data.tags?.join(", ") || "");
         setImages(data.images && data.images.length > 0 ? data.images : (data.imageUrl ? [data.imageUrl] : []));
+        setSelectedCategoryId(data.category?._id || data.category || "");
+        setSelectedSubcategoryId(data.subcategory?._id || data.subcategory || "");
+        setSelectedCityId(data.locationId?._id || data.locationId || "");
         editor?.commands.setContent(data.content || "");
       } catch (err) {
         toast.error("Не удалось загрузить объявление для редактирования");
@@ -174,14 +186,27 @@ const EditAd = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
 
-    if (!title.trim() || !editor?.getText().trim() || !price.trim()) {
-        toast.error("Заголовок, Цена и Описание не могут быть пустыми.");
+    if (!editor?.getText().trim()) {
+        toast.error("Описание не может быть пустым.");
+        return;
+    }
+
+    if (images.length === 0) {
+        toast.error("Необходимо загрузить хотя бы одно изображение.");
+        return;
+    }
+
+    if (!phone || phone.trim() === "") {
+        toast.error("Номер телефона обязателен.");
         return;
     }
 
     const content = editor.getHTML();
     const tagArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag);
-    const parsedPrice = parseFloat(price);
+    // Обработка цены: если 0 или не указана, отправляем 0 (будет "Договорная")
+    const finalPrice = price && parseFloat(price) > 0 ? parseFloat(price) : 0;
+    // Генерируем title из content для совместимости
+    const generatedTitle = content.trim().substring(0, 100) || "Объявление";
 
     try {
       setLoading(true);
@@ -194,14 +219,18 @@ const EditAd = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ 
-            title, 
+            title: generatedTitle,
             content, 
             tags: tagArray, 
             images: images.length > 0 ? images : [],
             imageUrl: images.length > 0 ? images[0] : "",
-            price: parsedPrice,
+            price: finalPrice,
             location,
-            phone
+            phone,
+            hidePhone,
+            locationId: selectedCityId,
+            category: selectedCategoryId,
+            subcategory: selectedSubcategoryId || null,
         }),
       });
 
@@ -228,13 +257,14 @@ const EditAd = () => {
                 <FiDollarSign className="w-5 h-5 text-teal-600" />
                 <input
                 type="number"
-                placeholder="Цена (в сомах)"
+                placeholder="Цена (в сомах) или 0 для 'Договорная'"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 className="w-full bg-transparent text-gray-800 focus:outline-none appearance-none"
-                required
+                min="0"
                 />
             </div>
+            <p className="text-xs text-gray-500 mt-1">Если 0 или не указано, будет отображаться "Договорная"</p>
             {/* Поле Локации */}
             <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl w-full sm:w-1/2 shadow-inner">
                 <FiMapPin className="w-5 h-5 text-teal-600" />
@@ -261,15 +291,30 @@ const EditAd = () => {
         </div>
 
         {/* Phone Input */}
-        <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl shadow-inner">
-            <FiPhone className="w-5 h-5 text-teal-600" />
-            <input
-                type="tel"
-                placeholder="Номер телефона (например: +996 555 123456)"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full bg-transparent text-gray-800 focus:outline-none"
-            />
+        <div>
+            <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl shadow-inner">
+                <FiPhone className="w-5 h-5 text-teal-600" />
+                <input
+                    type="tel"
+                    placeholder="Номер телефона (например: +996 555 123456)"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full bg-transparent text-gray-800 focus:outline-none"
+                    required
+                />
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="hidePhone"
+                checked={hidePhone}
+                onChange={(e) => setHidePhone(e.target.checked)}
+                className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+              />
+              <label htmlFor="hidePhone" className="text-sm text-gray-700 cursor-pointer">
+                Скрыть номер телефона
+              </label>
+            </div>
         </div>
 
         {/* Image Upload/Preview */}
@@ -335,10 +380,12 @@ const EditAd = () => {
   }
 
   // Формируем breadcrumb items
+  const contentPreview = editor?.getText() || "";
+  const breadcrumbTitle = contentPreview.length > 30 ? contentPreview.substring(0, 30) + "..." : contentPreview || "Редактирование";
   const breadcrumbItems = [
     { label: "Панель управления", path: "/dashboard" },
     { label: "Мои объявления", path: "/dashboard?tab=ads" },
-    { label: title ? (title.length > 30 ? title.substring(0, 30) + "..." : title) : "Редактирование", path: `/edit-ad/${id}` }
+    { label: breadcrumbTitle, path: `/edit-ad/${id}` }
   ];
 
   return (
@@ -356,27 +403,11 @@ const EditAd = () => {
         <header className="p-4 border-b border-gray-100 flex items-center gap-3">
             <FiMenu className="w-6 h-6 text-teal-500" />
             <h2 className="text-xl font-extrabold text-gray-900">
-                Редактирование: <span className="text-teal-600">{title || "Безымянное объявление"}</span>
+                Редактирование объявления
             </h2>
         </header>
 
         <form onSubmit={handleUpdate}>
-            
-            {/* Поле Заголовка (В стиле Soft UI) */}
-            <div className="p-4 border-b border-gray-100">
-                <input
-                    type="text"
-                    placeholder="Заголовок объявления"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    // Стиль, как в CreateAd: легкий фон, скругление, фокус-кольцо
-                    className="w-full px-4 py-3 text-2xl font-bold bg-gray-100 rounded-xl border border-transparent 
-                               focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white 
-                               transition duration-200 shadow-inner placeholder-gray-500"
-                    required
-                />
-            </div>
-
             {/* Навигация по вкладкам (Стиль Soft UI) */}
             <div className="flex border-b border-gray-100">
                 <button
@@ -387,7 +418,7 @@ const EditAd = () => {
                             ? "border-b-4 border-teal-500 text-teal-600 bg-teal-50"
                             : "text-gray-600 hover:bg-gray-100"}`}
                 >
-                    Описание (Содержание)
+                    Описание <span className="text-red-500">*</span>
                 </button>
                 <button
                     type="button"

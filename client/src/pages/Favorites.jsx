@@ -105,14 +105,21 @@ const Favorites = () => {
         
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
           {favoriteAds.map((ad) => {
+            const fullLocation = [
+              ad.locationId?.name || null,
+              ad.location || null
+            ]
+              .filter(Boolean)
+              .join(", ") || "Не указано";
+
             return (
               <AdCard
                 key={ad._id}
                 adId={ad._id} // Передаем ID
-                title={ad.title}
+                title={ad.content || ad.title || ""}
                 image={ad.images && ad.images[0] ? ad.images[0] : (ad.imageUrl || null)} 
                 datePosted={new Date(ad.createdAt).toLocaleDateString('ru-RU')}
-                location={ad.location}
+                location={fullLocation}
                 price={ad.price}
                 
                 onCardClick={() => navigate(`/ad-view/${ad._id}`)}
@@ -123,7 +130,12 @@ const Favorites = () => {
                 
                 // В избранном нет кнопок редактирования/удаления объявления
                 onEdit={null}
-                onDelete={null} 
+                onDelete={null}
+                
+                // Информация об авторе
+                author={ad.user}
+                onAuthorClick={(userId) => navigate(`/user/${userId}`)}
+                views={ad.views}
               />
             );
           })}

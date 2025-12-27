@@ -1,6 +1,7 @@
 // src/controllers/favoriteController.js
 import Favorite from '../models/Favorite.js';
 import Ad from '../models/Ad.js'; // Предполагаем, что у вас есть модель Ad
+import ProfileSettings from '../models/ProfileSettings.js';
 
 // @desc    Добавить объявление в избранное
 // @route   POST /api/favorites/:adId
@@ -74,17 +75,43 @@ export const getFavorites = async (req, res) => {
             .populate({
                 path: 'ad',
                 // Выбираем только нужные поля объявления
-                select: 'title price location images createdAt imageUrl content tags category user', 
+                select: 'title price location images createdAt imageUrl content tags category user locationId', 
+                populate: [
+                    {
+                        path: 'user',
+                        select: 'name email phone'
+                    },
+                    {
+                        path: 'locationId',
+                        select: 'name'
+                    }
+                ]
             })
             .sort({ createdAt: -1 }); 
 
         // Извлекаем только объекты объявлений и фильтруем объявления, которые могли быть удалены
-        const favoriteAds = favorites
-            .filter(fav => fav.ad !== null) // Удаляем записи, если объявление уже удалено
-            .map(fav => ({
-                ...fav.ad._doc,
-                isFavorite: true, // Фронтенд увидит, что это избранное
-            }));
+        const favoriteAds = await Promise.all(
+            favorites
+                .filter(fav => fav.ad !== null) // Удаляем записи, если объявление уже удалено
+                .map(async (fav) => {
+                    const ad = fav.ad._doc;
+                    // Добавляем информацию о профиле пользователя
+                    if (ad.user && ad.user._id) {
+                        const profileSettings = await ProfileSettings.findOne({ user: ad.user._id });
+                        if (profileSettings) {
+                            ad.user = {
+                                ...ad.user.toObject(),
+                                displayName: profileSettings.displayName || ad.user.name,
+                                profileImageUrl: profileSettings.profileImageUrl || "",
+                            };
+                        }
+                    }
+                    return {
+                        ...ad,
+                        isFavorite: true, // Фронтенд увидит, что это избранное
+                    };
+                })
+        );
         
 
         res.json(favoriteAds);

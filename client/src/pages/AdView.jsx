@@ -4,8 +4,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import { 
   FiLoader, FiTag, FiMapPin, FiArrowLeft, FiCalendar, 
-  FiPhone, FiChevronLeft, FiChevronRight, FiMaximize2, FiX 
+  FiPhone, FiChevronLeft, FiChevronRight, FiMaximize2, FiX, FiUser, FiEye
 } from 'react-icons/fi';
+import { FaRegUserCircle } from 'react-icons/fa';
 import Breadcrumb from '../components/Breadcrumb';
 
 // ====================================================================
@@ -404,11 +405,14 @@ const AdView = () => {
 
           {/* Остальной контент страницы (Без изменений) */}
           <header className="mb-8 border-b pb-4 border-gray-100">
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-3">
-              {ad.title}
-            </h1>
+            <div 
+              className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-3 line-clamp-3"
+              dangerouslySetInnerHTML={{ __html: ad.content || ad.title || "Объявление" }}
+            />
             <p className="text-4xl font-extrabold text-teal-600 tracking-wide">
-              {ad.price} сом
+              {ad.price && ad.price > 0 
+                ? `${ad.price} сом` 
+                : "Договорная"}
             </p>
           </header>
 
@@ -425,19 +429,64 @@ const AdView = () => {
             {ad.phone && (
               <div className="flex items-center gap-2">
                 <FiPhone className="w-6 h-6 text-teal-500" />
-                <a 
-                  href={`tel:${ad.phone}`}
-                  className="text-lg font-medium text-teal-600 hover:text-teal-700 hover:underline transition"
-                >
-                  {ad.phone}
-                </a>
+                {ad.hidePhone ? (
+                  <span className="text-lg font-medium text-gray-500">
+                    Телефон скрыт
+                  </span>
+                ) : (
+                  <a 
+                    href={`tel:${ad.phone}`}
+                    className="text-lg font-medium text-teal-600 hover:text-teal-700 hover:underline transition"
+                  >
+                    {ad.phone}
+                  </a>
+                )}
               </div>
             )}
             <div className="flex items-center gap-2">
               <FiCalendar className="w-6 h-6 text-gray-400" />
               <span className="text-sm">Опубликовано: {new Date(ad.createdAt).toLocaleDateString()}</span>
             </div>
+            {ad.views !== undefined && (
+              <div className="flex items-center gap-2">
+                <FiEye className="w-6 h-6 text-gray-400" />
+                <span className="text-sm">Просмотров: {ad.views || 0}</span>
+              </div>
+            )}
           </div>
+
+          {/* Информация об авторе */}
+          {ad.user && (
+            <div 
+              onClick={() => navigate(`/user/${ad.user._id}`)}
+              className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition"
+            >
+              <div className="flex items-center gap-4">
+                {ad.user.profileImageUrl ? (
+                  <img 
+                    src={ad.user.profileImageUrl} 
+                    alt={ad.user.displayName || ad.user.name}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-teal-500"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center border-2 border-teal-500">
+                    <FaRegUserCircle className="w-12 h-12 text-gray-400" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <FiUser className="w-5 h-5 text-teal-600" />
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      {ad.user.displayName || ad.user.name}
+                    </h3>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Нажмите, чтобы посмотреть профиль и другие объявления
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <section className="mb-10">
             {/* <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b border-teal-500/30 pb-2">

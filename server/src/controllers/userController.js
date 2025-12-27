@@ -1,6 +1,8 @@
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import User from "../models/User.js";
 import ProfileSettings from "../models/ProfileSettings.js";
+import Ad from "../models/Ad.js";
 
 // Функция для генерации JWT-токена
 const generateToken = (id) =>
@@ -97,7 +99,7 @@ export const getProfileSettings = async (req, res) => {
 // 4. Обновление настроек профиля (и синхронизация name/phone в User)
 export const updateProfileSettings = async (req, res) => {
   try {
-    const { displayName, phone, about, profileImageUrl } = req.body;
+    const { displayName, phone, about, profileImageUrl, website } = req.body;
 
     const settings = await ProfileSettings.findOneAndUpdate(
       { user: req.user._id },
@@ -107,6 +109,7 @@ export const updateProfileSettings = async (req, res) => {
           phone: phone ?? "",
           about: about ?? "",
           profileImageUrl: profileImageUrl ?? "",
+          website: website ?? "",
         },
       },
       { new: true, upsert: true }
@@ -125,5 +128,78 @@ export const updateProfileSettings = async (req, res) => {
   } catch (err) {
     console.error("Ошибка обновления настроек профиля:", err);
     res.status(500).json({ message: "Ошибка сервера при обновлении настроек профиля" });
+  }
+};
+
+// 5. Получить публичный профиль пользователя по ID
+/**
+ * @desc Получить публичный профиль пользователя
+ * @route GET /api/users/:id/profile
+ * @access Public
+ */
+export const getUserProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Неверный формат ID пользователя." });
+    }
+
+    const user = await User.findById(id).select("name phone createdAt");
+    
+    if (!user) {
+      return res.status(404).json({ message: "Пользователь не найден." });
+    }
+
+    // Получаем настройки профиля
+    const profileSettings = await ProfileSettings.findOne({ user: id });
+    
+    // Объединяем данные пользователя и настроек профиля
+    // Email не возвращаем для публичного профиля, вместо него показываем website
+    const profile = {
+      _id: user._id,
+      name: profileSettings?.displayName || user.name,
+      website: profileSettings?.website || "",
+      phone: profileSettings?.phone || user.phone,
+      about: profileSettings?.about || "",
+      profileImageUrl: profileSettings?.profileImageUrl || "",
+      createdAt: user.createdAt,
+    };
+
+    res.json(profile);
+  } catch (err) {
+    console.error("Ошибка получения профиля пользователя:", err);
+    res.status(500).json({ message: "Ошибка сервера при получении профиля пользователя" });
+  }
+};
+
+// 6. Получить объявления пользователя по ID
+/**
+ * @desc Получить объявления пользователя
+ * @route GET /api/users/:id/ads
+ * @access Public
+ */
+export const getUserAds = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Неверный формат ID пользователя." });
+    }
+    
+    const ads = await Ad.find({ 
+      user: id, 
+      status: "Active" 
+    })
+      .sort({ createdAt: -1 })
+      .populate("category", "name icon")
+      .populate("subcategory", "name")
+      .populate("locationId", "name")
+      .exec();
+
+    res.json(ads);
+  } catch (err) {
+    console.error("Ошибка получения объявлений пользователя:", err);
+    res.status(500).json({ message: "Ошибка сервера при получении объявлений пользователя" });
   }
 };

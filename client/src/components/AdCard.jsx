@@ -2,7 +2,16 @@
 
 import React from 'react';
 // Добавляем FiUser для отображения владельца (если нужно, хотя тут не используется)
-import { FiEdit, FiTrash2, FiMapPin, FiHeart } from 'react-icons/fi'; 
+import { FiEdit, FiTrash2, FiMapPin, FiHeart, FiUser, FiEye } from 'react-icons/fi'; 
+import { FaRegUserCircle } from 'react-icons/fa';
+
+// Вспомогательная функция для очистки HTML
+const stripHtml = (html) => {
+  if (!html) return "";
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || "";
+};
 
 const AdCard = ({ 
   adId, // НОВЫЙ ПРОПС: ID объявления для работы с избранным
@@ -16,12 +25,17 @@ const AdCard = ({
   onDelete,
   // НОВЫЕ ПРОПСЫ ДЛЯ ИЗБРАННОГО
   isFavorite, 
-  onToggleFavorite 
+  onToggleFavorite,
+  // Информация об авторе
+  author,
+  onAuthorClick,
+  // Количество просмотров
+  views
 }) => {
 
   // Функция форматирования цены
   const formatPrice = (p) => {
-    if (p === undefined || p === null) return "Договорная";
+    if (p === undefined || p === null || p === 0) return "Договорная";
     // Используем KGS (Кыргызский сом) как валюту
     return new Intl.NumberFormat('ru-RU', { 
       style: 'currency', 
@@ -84,20 +98,55 @@ const AdCard = ({
           {formatPrice(price)}
         </p>
 
-        {/* Заголовок (Компактный, с ограничением по строкам) */}
-        <h3 
+        {/* Описание (Компактное, с ограничением по строкам) */}
+        <div 
           onClick={onCardClick}
           className="text-sm font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-teal-600 transition"
         >
-          {title}
-        </h3>
+          {stripHtml(title || "").substring(0, 100) || ""}
+        </div>
 
-        {/* Мета-информация (Локация и Дата - маленьким шрифтом) */}
+        {/* Мета-информация (Локация, Дата, Просмотры - маленьким шрифтом) */}
         <div className="flex items-center text-xs text-gray-500 mt-auto pt-1">
             <FiMapPin className="w-3 h-3 mr-1 flex-shrink-0" />
             <span className="truncate">{location || "Не указано"}</span>
-            <span className="ml-auto">· {datePosted}</span>
+            <span className="ml-auto flex items-center gap-1">
+              {views !== undefined && views > 0 && (
+                <>
+                  <FiEye className="w-3 h-3" />
+                  <span>{views}</span>
+                  <span>·</span>
+                </>
+              )}
+              <span>{datePosted}</span>
+            </span>
         </div>
+        
+        {/* Информация об авторе */}
+        {author && (
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              onAuthorClick && onAuthorClick(author._id);
+            }}
+            className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 cursor-pointer hover:bg-gray-50 rounded px-1 -mx-1 transition"
+          >
+            {author.profileImageUrl ? (
+              <img 
+                src={author.profileImageUrl} 
+                alt={author.displayName || author.name}
+                className="w-6 h-6 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                <FaRegUserCircle className="w-5 h-5 text-gray-400" />
+              </div>
+            )}
+            <span className="text-xs text-gray-600 truncate flex-1">
+              {author.displayName || author.name}
+            </span>
+          </div>
+        )}
         
         {/* Кнопки действий владельца */}
         {isOwner && (

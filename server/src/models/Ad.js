@@ -4,9 +4,10 @@ import mongoose from "mongoose";
 const adSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true,
+    required: false, // Теперь необязательно, генерируется из content
     trim: true,
     maxlength: 100,
+    default: "",
   },
   content: {
     type: String,
@@ -15,8 +16,9 @@ const adSchema = new mongoose.Schema({
   },
   price: {
     type: Number,
-    required: true, 
+    required: false, 
     min: 0,
+    default: 0, // 0 означает "Договорная"
   },
   location: {
     type: String,
@@ -26,12 +28,16 @@ const adSchema = new mongoose.Schema({
   locationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Location",
-    default: null,
+    required: true,
   },
   phone: {
     type: String,
     trim: true,
     default: "",
+  },
+  hidePhone: {
+    type: Boolean,
+    default: false,
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,
@@ -41,6 +47,11 @@ const adSchema = new mongoose.Schema({
   subcategory: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category",
+    required: function() {
+      // Подкатегория обязательна, если у категории есть подкатегории
+      // Но это сложно проверить на уровне схемы, поэтому проверяем в контроллере
+      return false; // Всегда необязательна на уровне схемы
+    },
     default: null,
   },
   user: { 
@@ -64,6 +75,12 @@ const adSchema = new mongoose.Schema({
   isFeatured: { // Для платного продвижения
     type: Boolean,
     default: false,
+  },
+  
+  views: { // Счетчик просмотров
+    type: Number,
+    default: 0,
+    min: 0,
   },
 
 }, {

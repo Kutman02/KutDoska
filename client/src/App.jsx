@@ -16,6 +16,7 @@ import AdView from "./pages/AdView";
 // 💡 НОВЫЙ ИМПОРТ: Страница "Избранное"
 import Favorites from "./pages/Favorites"; 
 import Chats from "./pages/chats";
+import UserProfile from "./pages/UserProfile";
 
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
           <Routes>
             <Route path="/" element={<PublicHome />} />
             <Route path="/ad-view/:id" element={<AdView />} />
+            <Route path="/user/:id" element={<UserProfile />} />
             
             {/* 🔒 ЗАЩИЩЕННЫЕ МАРШРУТЫ */}
             <Route path="/dashboard" element={

@@ -21,6 +21,7 @@ const PublicHome = () => {
   const { 
     publicAds, setPublicAds, categories, subcategories, 
     selectedCategory, selectedSubcategory, loading, 
+    searchQuery, setSearchQuery,
     handleCategorySelect, handleSubcategorySelect 
   } = useHomeAdsLogic(); 
   
@@ -69,7 +70,8 @@ const PublicHome = () => {
               onCategorySelect={handleCategorySelect}
               onSubcategorySelect={handleSubcategorySelect}
               currentCategoryName={currentCategoryName}
-              // Поле input для текстового поиска пока не привязано к логике
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
           />
 
           <AdListSection
@@ -84,6 +86,8 @@ const PublicHome = () => {
               isFavorite={isFavorite}
               toggleFavorite={toggleFavorite}
               handleDelete={handleDelete}
+              searchQuery={searchQuery}
+              onSearchClear={() => setSearchQuery("")}
           />
           
         </div>

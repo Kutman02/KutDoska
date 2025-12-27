@@ -168,7 +168,7 @@ const MyAds = ({ user }) => {
                   return (
                     <AdCard
                       key={ad._id}
-                      title={ad.title}
+                      title={ad.content || ad.title || ""}
                       image={ad.images?.[0] || ad.imageUrl || null}
                       descriptionSnippet={stripHtml(ad.content)?.slice(0, 100) || ""}
                       datePosted={new Date(ad.createdAt).toLocaleDateString('ru-RU')}
@@ -177,7 +177,8 @@ const MyAds = ({ user }) => {
                       tags={ad.tags || []}
                       onCardClick={() => handleCardClick(ad._id)}
                       onEdit={() => navigate(`/edit-ad/${ad._id}`)}
-                      onDelete={() => handleDelete(ad._id, ad.title)}
+                      onDelete={() => handleDelete(ad._id, stripHtml(ad.content || ad.title || "").substring(0, 30))}
+                      views={ad.views}
                     />
                   );
                 })}

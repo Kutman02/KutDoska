@@ -11,7 +11,8 @@ const useHomeAdsLogic = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
-  const [subcategories, setSubcategories] = useState([]); 
+  const [subcategories, setSubcategories] = useState([]);
+  const [searchQuery, setSearchQuery] = useState(""); 
 
   // 1. Загрузка категорий (только один раз при монтировании)
   useEffect(() => {
@@ -40,25 +41,45 @@ const useHomeAdsLogic = () => {
     }
   }, [selectedCategory, categories]); 
 
-  // 3. Загрузка объявлений при изменении фильтров
+  // 3. Загрузка объявлений при изменении фильтров или поискового запроса
   useEffect(() => {
     const fetchPublicAds = async () => {
       setLoading(true);
       try {
-        const params = new URLSearchParams();
-        if (selectedSubcategory) {
-          params.append('subcategory', selectedSubcategory);
-        } else if (selectedCategory) {
-          params.append('category', selectedCategory);
+        // Если есть поисковый запрос, используем поиск
+        if (searchQuery && searchQuery.trim().length > 0) {
+          const params = new URLSearchParams();
+          params.append('q', searchQuery.trim());
+          if (selectedSubcategory) {
+            params.append('subcategory', selectedSubcategory);
+          } else if (selectedCategory) {
+            params.append('category', selectedCategory);
+          }
+          const queryString = params.toString();
+          const url = `http://localhost:8080/api/ads/search?${queryString}`;
+          
+          const response = await fetch(url); 
+          if (!response.ok) throw new Error(`Ошибка поиска: ${response.status}`);
+          
+          const data = await response.json();
+          setPublicAds(data);
+        } else {
+          // Обычная загрузка объявлений
+          const params = new URLSearchParams();
+          if (selectedSubcategory) {
+            params.append('subcategory', selectedSubcategory);
+          } else if (selectedCategory) {
+            params.append('category', selectedCategory);
+          }
+          const queryString = params.toString();
+          const url = `http://localhost:8080/api/ads/latest${queryString ? `?${queryString}` : ''}`;
+          
+          const response = await fetch(url); 
+          if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
+          
+          const data = await response.json();
+          setPublicAds(data);
         }
-        const queryString = params.toString();
-        const url = `http://localhost:8080/api/ads/latest${queryString ? `?${queryString}` : ''}`;
-        
-        const response = await fetch(url); 
-        if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
-        
-        const data = await response.json();
-        setPublicAds(data);
       } catch (error) {
         console.error("Ошибка:", error);
         toast.error(error.message);
@@ -68,7 +89,7 @@ const useHomeAdsLogic = () => {
     };
 
     fetchPublicAds();
-  }, [selectedCategory, selectedSubcategory]);
+  }, [selectedCategory, selectedSubcategory, searchQuery]);
 
   
   // 4. Обработчик выбора категории
@@ -101,6 +122,8 @@ const useHomeAdsLogic = () => {
     selectedCategory,
     selectedSubcategory,
     loading,
+    searchQuery,
+    setSearchQuery,
     handleCategorySelect,
     handleSubcategorySelect,
   };

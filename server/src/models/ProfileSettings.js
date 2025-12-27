@@ -12,6 +12,7 @@ const profileSettingsSchema = new mongoose.Schema(
     phone: { type: String, trim: true, default: "" },
     about: { type: String, trim: true, default: "" },
     profileImageUrl: { type: String, trim: true, default: "" },
+    website: { type: String, trim: true, default: "" },
   },
   {
     timestamps: true,

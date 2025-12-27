@@ -1,7 +1,8 @@
 // src/components/HomeSearchFilterBar.jsx
 
-import React from 'react';
-import CategoryDropdown from './CategoryDropdown'; // Убедитесь, что путь правильный
+import React, { useState, useEffect, useRef } from 'react';
+import { FiSearch, FiX } from 'react-icons/fi';
+import CategoryDropdown from './CategoryDropdown';
 
 /**
  * Компонент панели поиска и фильтрации.
@@ -11,18 +12,56 @@ import CategoryDropdown from './CategoryDropdown'; // Убедитесь, что
  * @param {string} props.currentCategoryName - Имя текущей выбранной категории.
  * @param {function} props.onCategorySelect - Обработчик выбора категории.
  * @param {function} props.onSubcategorySelect - Обработчик выбора подкатегории.
+ * @param {string} props.searchQuery - Текущий поисковый запрос.
+ * @param {function} props.onSearchChange - Обработчик изменения поискового запроса.
  */
 const HomeSearchFilterBar = ({ 
     categories, 
     currentCategoryName, 
     onCategorySelect, 
-    onSubcategorySelect 
+    onSubcategorySelect,
+    searchQuery = "",
+    onSearchChange
 }) => {
-    
-    // Допустим, здесь будет обработчик текстового поиска, когда он будет реализован
-    const handleSearch = () => {
-        console.log("Выполнить текстовый поиск...");
-        // Здесь будет логика для отправки запроса с поисковым текстом
+    const [localQuery, setLocalQuery] = useState(searchQuery);
+    const debounceTimer = useRef(null);
+
+    // Debounce для оптимизации поиска
+    useEffect(() => {
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+
+        debounceTimer.current = setTimeout(() => {
+            if (onSearchChange) {
+                onSearchChange(localQuery);
+            }
+        }, 500); // Задержка 500мс
+
+        return () => {
+            if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current);
+            }
+        };
+    }, [localQuery, onSearchChange]);
+
+    // Синхронизация с внешним состоянием
+    useEffect(() => {
+        setLocalQuery(searchQuery);
+    }, [searchQuery]);
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        if (onSearchChange) {
+            onSearchChange(localQuery);
+        }
+    };
+
+    const handleClear = () => {
+        setLocalQuery("");
+        if (onSearchChange) {
+            onSearchChange("");
+        }
     };
 
     return (
@@ -46,15 +85,32 @@ const HomeSearchFilterBar = ({
                        {currentCategoryName}
                     </div>
                     
-                    <input 
-                        type="text" 
-                        placeholder="Я ищу..." 
-                        className="flex-grow p-3 focus:outline-none h-full"
-                    />
+                    <div className="flex-grow flex items-center relative">
+                        <FiSearch className="absolute left-3 text-gray-400 w-5 h-5" />
+                        <input 
+                            type="text" 
+                            placeholder="Я ищу..." 
+                            value={localQuery}
+                            onChange={(e) => setLocalQuery(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
+                            className="flex-grow pl-10 pr-8 py-2 focus:outline-none h-full"
+                        />
+                        {localQuery && (
+                            <button
+                                type="button"
+                                onClick={handleClear}
+                                className="absolute right-2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <FiX className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
                     <button 
+                        type="button"
                         onClick={handleSearch}
-                        className="bg-teal-600 text-white px-8 h-full rounded-r-lg font-semibold hover:bg-teal-700 transition-colors"
+                        className="bg-teal-600 text-white px-8 h-full rounded-r-lg font-semibold hover:bg-teal-700 transition-colors flex items-center gap-2"
                     >
+                        <FiSearch className="w-5 h-5" />
                         Поиск
                     </button>
                 </div>

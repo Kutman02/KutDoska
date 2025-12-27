@@ -8,6 +8,7 @@ const ProfileSettings = ({ user }) => {
     const [name, setName] = useState(user?.name || "");
     const [email] = useState(user?.email || "");
     const [phone, setPhone] = useState(user?.phone || "");
+    const [website, setWebsite] = useState("");
     const [about, setAbout] = useState("");
     const [profileImageUrl, setProfileImageUrl] = useState("");
     
@@ -34,6 +35,7 @@ const ProfileSettings = ({ user }) => {
                 const data = await res.json();
                 setName(data.displayName || user?.name || "");
                 setPhone(data.phone || user?.phone || "");
+                setWebsite(data.website || "");
                 setAbout(data.about || "");
                 setProfileImageUrl(data.profileImageUrl || "");
                 
@@ -98,6 +100,7 @@ const ProfileSettings = ({ user }) => {
                 body: JSON.stringify({
                     displayName: name,
                     phone,
+                    website,
                     about,
                     profileImageUrl, // Отправляем новый или существующий URL
                 }),
@@ -181,6 +184,18 @@ const ProfileSettings = ({ user }) => {
                         />
                     </div>
                     <div>
+                        <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">Веб-сайт</label>
+                        <input
+                            type="url"
+                            id="website"
+                            value={website}
+                            onChange={(e) => setWebsite(e.target.value)}
+                            placeholder="https://example.com"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl shadow-inner focus:ring-teal-500 focus:border-teal-500 transition duration-200"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">Ваш веб-сайт будет отображаться в публичном профиле вместо email</p>
+                    </div>
+                    <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                         <input
                             type="email"
@@ -189,7 +204,7 @@ const ProfileSettings = ({ user }) => {
                             disabled
                             className="w-full px-4 py-3 border border-gray-200 rounded-xl shadow-inner focus:ring-teal-500 focus:border-teal-500 transition duration-200 bg-gray-50"
                         />
-                        <p className="mt-1 text-xs text-gray-500">Email изменить нельзя.</p>
+                        <p className="mt-1 text-xs text-gray-500">Email изменить нельзя. Он не отображается в публичном профиле.</p>
                     </div>
                     <div>
                         <label htmlFor="about" className="block text-sm font-medium text-gray-700 mb-1">О себе</label>
