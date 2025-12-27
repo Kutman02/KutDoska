@@ -66,7 +66,7 @@ const Dashboard = () => {
       <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-6 bg-gray-50">
         <div className="max-w-screen-xl mx-auto py-8">
           {/* Breadcrumb */}
-          <Breadcrumb items={getBreadcrumbItems()} />
+          <Breadcrumb items={getBreadcrumbItems()} showHomeIcon={true} />
           
           <h1 className="text-4xl font-extrabold text-gray-900 mb-6 hidden md:block">
             Панель Управления {user && user.role === "admin" && "(Администратор)"}

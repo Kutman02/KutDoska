@@ -474,7 +474,7 @@ const EditAd = () => {
         
         {/* Breadcrumb */}
         <div className="p-4 border-b border-gray-100">
-          <Breadcrumb items={breadcrumbItems} />
+          <Breadcrumb items={breadcrumbItems} showHomeIcon={true} />
         </div>
 
         {/* Заголовок Рабочей Области */}
