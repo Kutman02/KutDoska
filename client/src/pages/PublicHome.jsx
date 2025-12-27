@@ -32,10 +32,14 @@ const PublicHome = () => {
   const { handleDelete } = useAdActions({ setPublicAds }); 
   
   // --- Состояния Загрузки ---
-  if (loading) {
+  // Показываем загрузку только при первой загрузке, не при каждом поиске
+  const isInitialLoad = loading && publicAds.length === 0;
+  
+  if (isInitialLoad) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center bg-gray-50">
         <FeatherIcons.FiLoader className="w-8 h-8 text-teal-600 animate-spin mb-4" />
+        <p className="text-gray-600">Загрузка объявлений...</p>
       </div>
     );
   }
@@ -74,6 +78,14 @@ const PublicHome = () => {
               onSearchChange={setSearchQuery}
           />
 
+          {/* Показываем индикатор загрузки при поиске */}
+          {loading && publicAds.length === 0 && searchQuery && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <FeatherIcons.FiLoader className="w-8 h-8 text-teal-600 animate-spin mb-4" />
+              <p className="text-gray-600">Поиск объявлений...</p>
+            </div>
+          )}
+          
           <AdListSection
               publicAds={publicAds}
               selectedCategory={selectedCategory}
@@ -88,6 +100,7 @@ const PublicHome = () => {
               handleDelete={handleDelete}
               searchQuery={searchQuery}
               onSearchClear={() => setSearchQuery("")}
+              loading={loading}
           />
           
         </div>

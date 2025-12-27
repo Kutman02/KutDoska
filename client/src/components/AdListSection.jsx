@@ -27,6 +27,7 @@ const stripHtml = (html) => {
  * @param {function} props.handleDelete - Функция удаления объявления.
  * @param {string} props.searchQuery - Текущий поисковый запрос.
  * @param {function} props.onSearchClear - Обработчик сброса поиска.
+ * @param {boolean} props.loading - Состояние загрузки.
  */
 const AdListSection = ({ 
     publicAds, 
@@ -41,7 +42,8 @@ const AdListSection = ({
     toggleFavorite,
     handleDelete,
     searchQuery = "",
-    onSearchClear
+    onSearchClear,
+    loading = false
 }) => {
 
     // Вычисление заголовка текущей ленты
@@ -81,8 +83,8 @@ const AdListSection = ({
                 )}
             </div>
             
-            {/* Пустое состояние */}
-            {publicAds.length === 0 ? (
+            {/* Пустое состояние - показываем только если не идет загрузка */}
+            {!loading && publicAds.length === 0 ? (
                <div className="flex flex-col items-center justify-center py-20 text-center">
                    <FeatherIcons.FiInbox className="w-16 h-16 text-gray-300 mb-4" />
                    <h3 className="text-xl font-semibold text-gray-600">
@@ -96,7 +98,7 @@ const AdListSection = ({
                            : "Попробуйте выбрать другую категорию"}
                    </p>
                </div>
-            ) : (
+            ) : !loading ? (
               /* Сетка объявлений */
               <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-6">
                   {publicAds.map((ad) => {
@@ -139,7 +141,7 @@ const AdListSection = ({
                       );
                   })}
               </div>
-            )}
+            ) : null}
         </>
     );
 };

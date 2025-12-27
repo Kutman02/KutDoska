@@ -44,7 +44,10 @@ const useHomeAdsLogic = () => {
   // 3. Загрузка объявлений при изменении фильтров или поискового запроса
   useEffect(() => {
     const fetchPublicAds = async () => {
+      // Сразу показываем загрузку и очищаем старые результаты
       setLoading(true);
+      setPublicAds([]); // Очищаем старые результаты перед новым поиском
+      
       try {
         // Если есть поисковый запрос, используем поиск
         if (searchQuery && searchQuery.trim().length > 0) {
@@ -62,7 +65,7 @@ const useHomeAdsLogic = () => {
           if (!response.ok) throw new Error(`Ошибка поиска: ${response.status}`);
           
           const data = await response.json();
-          setPublicAds(data);
+          setPublicAds(data || []);
         } else {
           // Обычная загрузка объявлений
           const params = new URLSearchParams();
@@ -78,11 +81,12 @@ const useHomeAdsLogic = () => {
           if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
           
           const data = await response.json();
-          setPublicAds(data);
+          setPublicAds(data || []);
         }
       } catch (error) {
         console.error("Ошибка:", error);
         toast.error(error.message);
+        setPublicAds([]); // Очищаем результаты при ошибке
       } finally {
         setLoading(false);
       }

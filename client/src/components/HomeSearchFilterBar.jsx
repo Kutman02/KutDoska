@@ -1,6 +1,6 @@
 // src/components/HomeSearchFilterBar.jsx
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiSearch, FiX } from 'react-icons/fi';
 import CategoryDropdown from './CategoryDropdown';
 
@@ -24,26 +24,6 @@ const HomeSearchFilterBar = ({
     onSearchChange
 }) => {
     const [localQuery, setLocalQuery] = useState(searchQuery);
-    const debounceTimer = useRef(null);
-
-    // Debounce для оптимизации поиска
-    useEffect(() => {
-        if (debounceTimer.current) {
-            clearTimeout(debounceTimer.current);
-        }
-
-        debounceTimer.current = setTimeout(() => {
-            if (onSearchChange) {
-                onSearchChange(localQuery);
-            }
-        }, 500); // Задержка 500мс
-
-        return () => {
-            if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-            }
-        };
-    }, [localQuery, onSearchChange]);
 
     // Синхронизация с внешним состоянием
     useEffect(() => {
