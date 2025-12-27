@@ -15,7 +15,7 @@ import jwt from "jsonwebtoken";
  */
 export const getPublicAds = async (req, res) => {
     try {
-        const { category, subcategory, location } = req.query; 
+        const { category, subcategory, location, minPrice, maxPrice } = req.query; 
 
         const filter = { status: "Active" }; 
 
@@ -38,6 +38,17 @@ export const getPublicAds = async (req, res) => {
                 return res.status(400).json({ message: "Неверный формат ID локации." });
             }
             filter.locationId = location;
+        }
+
+        // Фильтр по цене
+        if (minPrice || maxPrice) {
+            filter.price = {};
+            if (minPrice) {
+                filter.price.$gte = parseFloat(minPrice);
+            }
+            if (maxPrice) {
+                filter.price.$lte = parseFloat(maxPrice);
+            }
         }
 
         const publicAds = await Ad.find(filter)
@@ -185,7 +196,7 @@ export const searchAds = async (req, res) => {
                     $or: searchConditions
                 })
                 .populate("user", "name email phone")
-                .populate("category", "name icon")
+        .populate("category", "name icon")
                 .populate("subcategory", "name")
                 .populate("locationId", "name")
                 .sort({ createdAt: -1 })
@@ -412,13 +423,13 @@ export const createAd = async (req, res) => {
   if (!content || !category || !locationId) {
     return res.status(400).json({ message: "Описание, категория и город обязательны" });
   }
-
+  
   // Проверка наличия главного изображения
-  const normalizedImages = Array.isArray(images) && images.length > 0
-    ? images
-    : imageUrl
-      ? [imageUrl]
-      : [];
+    const normalizedImages = Array.isArray(images) && images.length > 0
+      ? images
+      : imageUrl
+        ? [imageUrl]
+        : [];
 
   if (normalizedImages.length === 0) {
     return res.status(400).json({ message: "Необходимо загрузить хотя бы одно изображение" });

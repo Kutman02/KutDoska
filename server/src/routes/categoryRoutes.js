@@ -49,11 +49,29 @@ categoryRouter.get("/", async (req, res) => {
     try {
         // Ищем только главные категории (parent: null) и заполняем subcategories
         const categories = await Category.find({ parent: null })
-            .populate("subcategories", "name") // Заполняем только имя подкатегории
-            .select("name icon subcategories")
+            .populate("subcategories", "name slug") // Заполняем имя и slug подкатегории
+            .select("name slug icon subcategories")
             .sort({ name: 1 });
 
         res.status(200).json(categories);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// 2b. Получение категории по slug
+categoryRouter.get("/slug/:slug", async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const category = await Category.findOne({ slug, parent: null })
+            .populate("subcategories", "name slug")
+            .select("name slug icon subcategories");
+
+        if (!category) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
+        res.status(200).json(category);
     } catch (error) {
         res.status(500).json({ message: "Internal server error" });
     }

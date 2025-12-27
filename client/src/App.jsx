@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { setUser } from "./store/slices/authSlice";
 import PublicHome from "./pages/PublicHome";
+import CategoryPage from "./pages/CategoryPage";
 import AdView from "./pages/AdView";
 import Favorites from "./pages/Favorites"; 
 import Chats from "./pages/chats";
@@ -58,6 +59,9 @@ function App() {
           {/* 💡 НОВЫЙ ЗАЩИЩЕННЫЙ МАРШРУТ: Избранное */}
           <Route path="/favorites" element={<PrivateRoute><Favorites /></PrivateRoute>} />
           <Route path="/chats" element={<PrivateRoute><Chats /></PrivateRoute>} />
+          
+          {/* 🌐 РОУТЫ КАТЕГОРИЙ (должен быть последним, чтобы не перехватывать другие роуты) */}
+          <Route path="/:slug" element={<CategoryPage />} />
         </Routes>
       </div>
     </>

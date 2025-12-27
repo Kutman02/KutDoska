@@ -45,10 +45,10 @@ const HomeSearchFilterBar = ({
     };
 
     return (
-        <div className="flex mb-8 relative"> 
+        <div className="flex mb-8 relative flex-wrap gap-4"> 
             
             {/* 1. Левый блок: Выпадающее меню */}
-            <div className="w-1/4 min-w-[250px] mr-4 relative">
+            <div className="w-full sm:w-1/4 min-w-[250px] relative">
                 <CategoryDropdown
                     categories={categories}
                     onCategorySelect={onCategorySelect}

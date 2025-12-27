@@ -1,10 +1,8 @@
-// src/pages/PublicHome.jsx
-import React, { useState, useEffect } from "react"; 
-import { useNavigate } from "react-router-dom";
+// src/pages/CategoryPage.jsx
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import * as FeatherIcons from "react-icons/fi"; 
-
-// Импортируем компоненты и хуки
+import * as FeatherIcons from "react-icons/fi";
 import Breadcrumb from "../components/Breadcrumb";
 import HomeSearchFilterBar from "../components/HomeSearchFilterBar";
 import AdListSection from "../components/AdListSection";
@@ -14,12 +12,16 @@ import useFavorites from "../hooks/useFavorites";
 import useAdActions from "../hooks/useAdActions";
 import toast from "react-hot-toast";
 
-const PublicHome = () => {
+const CategoryPage = () => {
+  const { slug } = useParams();
   const navigate = useNavigate();
-  const { user } = useAppSelector((state) => state.auth); 
-  
+  const { user } = useAppSelector((state) => state.auth);
+
   const [publicAds, setPublicAds] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [locations, setLocations] = useState([]);
@@ -60,6 +62,39 @@ const PublicHome = () => {
     fetchLocations();
   }, []);
 
+  // Загрузка категории по slug
+  useEffect(() => {
+    const fetchCategoryBySlug = async () => {
+      if (!slug) return;
+      
+      try {
+        const response = await fetch(`http://localhost:8080/api/categories/slug/${slug}`);
+        if (!response.ok) {
+          navigate("/");
+          return;
+        }
+        const category = await response.json();
+        setSelectedCategory(category._id);
+        setSubcategories(category.subcategories || []);
+      } catch (error) {
+        console.error("Ошибка:", error);
+        navigate("/");
+      }
+    };
+    fetchCategoryBySlug();
+  }, [slug, navigate]);
+
+  // Синхронизация подкатегорий
+  useEffect(() => {
+    if (selectedCategory) {
+      const currentCategory = categories.find(c => c._id === selectedCategory);
+      setSubcategories(currentCategory?.subcategories || []);
+    } else {
+      setSubcategories([]);
+      setSelectedSubcategory(null);
+    }
+  }, [selectedCategory, categories]);
+
   // Загрузка объявлений
   useEffect(() => {
     const fetchPublicAds = async () => {
@@ -68,6 +103,12 @@ const PublicHome = () => {
 
       try {
         const params = new URLSearchParams();
+        
+        if (selectedSubcategory) {
+          params.append('subcategory', selectedSubcategory);
+        } else if (selectedCategory) {
+          params.append('category', selectedCategory);
+        }
 
         if (filters.city) {
           params.append('location', filters.city);
@@ -110,18 +151,23 @@ const PublicHome = () => {
       }
     };
 
-    fetchPublicAds();
-  }, [searchQuery, filters]);
+    if (selectedCategory) {
+      fetchPublicAds();
+    }
+  }, [selectedCategory, selectedSubcategory, searchQuery, filters]);
 
   const handleCategorySelect = (categoryId) => {
     const category = categories.find(c => c._id === categoryId);
     if (category && category.slug) {
       navigate(`/${category.slug}`);
+    } else {
+      setSelectedCategory(categoryId);
+      setSelectedSubcategory(null);
     }
   };
 
-  const handleSubcategorySelect = () => {
-    // На главной странице подкатегории не используются
+  const handleSubcategorySelect = (subcategoryId) => {
+    setSelectedSubcategory(subcategoryId);
   };
 
   const handleApplyFilters = (newFilters) => {
@@ -135,12 +181,12 @@ const PublicHome = () => {
       priceTo: '',
     });
   };
-  
-  const { isFavorite, toggleFavorite } = useFavorites(); 
-  const { handleDelete } = useAdActions({ setPublicAds }); 
-  
+
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { handleDelete } = useAdActions({ setPublicAds });
+
   const isInitialLoad = loading && publicAds.length === 0;
-  
+
   if (isInitialLoad) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center bg-gray-50">
@@ -150,20 +196,28 @@ const PublicHome = () => {
     );
   }
 
+  const currentCategory = categories.find(c => c._id === selectedCategory);
+  const breadcrumbItems = currentCategory 
+    ? [{ label: currentCategory.name, path: `/${currentCategory.slug}` }]
+    : [];
+
+  const currentCategoryName = currentCategory?.name || "Все категории";
+
   return (
     <>
       <Toaster position="top-right" />
       <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-8 bg-gray-50">
         <div className="max-w-screen-xl mx-auto py-8">
-          
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
+          <Breadcrumb items={breadcrumbItems} showHomeIcon={true} />
+
+          <div className="flex items-center justify-between mb-4">
             <HomeSearchFilterBar
-                categories={categories}
-                onCategorySelect={handleCategorySelect}
-                onSubcategorySelect={handleSubcategorySelect}
-                currentCategoryName="Все категории"
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
+              categories={categories}
+              onCategorySelect={handleCategorySelect}
+              onSubcategorySelect={handleSubcategorySelect}
+              currentCategoryName={currentCategoryName}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
             />
             <FilterPanel
               locations={locations}
@@ -173,35 +227,34 @@ const PublicHome = () => {
             />
           </div>
 
-          {/* Показываем индикатор загрузки при поиске */}
           {loading && publicAds.length === 0 && searchQuery && (
             <div className="flex flex-col items-center justify-center py-20">
               <FeatherIcons.FiLoader className="w-8 h-8 text-teal-600 animate-spin mb-4" />
               <p className="text-gray-600">Поиск объявлений...</p>
             </div>
           )}
-          
+
           <AdListSection
-              publicAds={publicAds}
-              selectedCategory={null}
-              selectedSubcategory={null}
-              categories={categories}
-              subcategories={[]}
-              handleCategorySelect={handleCategorySelect}
-              user={user}
-              navigate={navigate}
-              isFavorite={isFavorite}
-              toggleFavorite={toggleFavorite}
-              handleDelete={handleDelete}
-              searchQuery={searchQuery}
-              onSearchClear={() => setSearchQuery("")}
-              loading={loading}
+            publicAds={publicAds}
+            selectedCategory={selectedCategory}
+            selectedSubcategory={selectedSubcategory}
+            categories={categories}
+            subcategories={subcategories}
+            handleCategorySelect={handleCategorySelect}
+            user={user}
+            navigate={navigate}
+            isFavorite={isFavorite}
+            toggleFavorite={toggleFavorite}
+            handleDelete={handleDelete}
+            searchQuery={searchQuery}
+            onSearchClear={() => setSearchQuery("")}
+            loading={loading}
           />
-          
         </div>
       </div>
     </>
   );
 };
 
-export default PublicHome;
+export default CategoryPage;
+
