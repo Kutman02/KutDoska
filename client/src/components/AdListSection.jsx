@@ -57,50 +57,50 @@ const AdListSection = ({
 
     return (
         <>
-            {/* Заголовок текущей ленты */}
-            <div className="flex justify-between items-end mb-6 border-b pb-2">
+            {/* Заголовок текущей ленты - адаптивный */}
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end mb-4 md:mb-6 border-b pb-2 md:pb-3 gap-2 sm:gap-0">
                 <div>
-                    <h2 className="text-3xl font-extrabold text-gray-900">
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900">
                         {currentTitle}
                     </h2>
                     {publicAds.length > 0 && (
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1">
                             Найдено объявлений: {publicAds.length}
                         </p>
                     )}
                 </div>
-                {/* Кнопка сброса фильтра, если что-то выбрано */}
+                {/* Кнопка сброса фильтра - адаптивная */}
                 {(selectedCategory || selectedSubcategory || (searchQuery && searchQuery.trim())) && (
                     <button 
                       onClick={() => {
                         handleCategorySelect(null);
                         if (onSearchClear) onSearchClear();
                       }}
-                      className="text-teal-600 hover:text-teal-800 text-sm font-medium mb-1"
+                      className="text-teal-600 hover:text-teal-800 active:text-teal-900 text-xs sm:text-sm font-medium mb-1 touch-manipulation active:scale-95 transition-all self-start sm:self-auto"
                     >
                         Сбросить фильтры
                     </button>
                 )}
             </div>
             
-            {/* Пустое состояние - показываем только если не идет загрузка */}
+            {/* Пустое состояние - адаптивное */}
             {!loading && publicAds.length === 0 ? (
-               <div className="flex flex-col items-center justify-center py-20 text-center">
-                   <FeatherIcons.FiInbox className="w-16 h-16 text-gray-300 mb-4" />
-                   <h3 className="text-xl font-semibold text-gray-600">
+               <div className="flex flex-col items-center justify-center py-12 md:py-20 text-center px-4">
+                   <FeatherIcons.FiInbox className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mb-3 md:mb-4" />
+                   <h3 className="text-lg md:text-xl font-semibold text-gray-600 mb-2">
                        {searchQuery && searchQuery.trim() 
                            ? `По запросу "${searchQuery}" ничего не найдено`
                            : "Объявлений пока нет"}
                    </h3>
-                   <p className="text-gray-500">
+                   <p className="text-sm md:text-base text-gray-500 max-w-md">
                        {searchQuery && searchQuery.trim()
                            ? "Попробуйте изменить поисковый запрос или выбрать другую категорию"
                            : "Попробуйте выбрать другую категорию"}
                    </p>
                </div>
             ) : !loading ? (
-              /* Сетка объявлений */
-              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-6">
+              /* Сетка объявлений - адаптивная для всех устройств */
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
                   {publicAds.map((ad) => {
                       // Логика проверки владельца перенесена сюда
                       const isOwner = user?._id && (user._id === (ad.user?._id || ad.user)); 

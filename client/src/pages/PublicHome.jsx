@@ -178,36 +178,56 @@ const PublicHome = () => {
   return (
     <>
       <Toaster position="top-right" />
-      <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-8 bg-gray-50">
-        <div className="max-w-screen-xl mx-auto py-8">
+      {/* Мобильная адаптация: полная высота экрана, без отступов снизу на мобильных */}
+      <div className="min-h-[calc(100vh-4rem)] md:min-h-screen bg-gray-50 pb-20 md:pb-0">
+        {/* Контейнер с адаптивными отступами */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6 lg:py-8">
           
-          <Breadcrumb items={breadcrumbItems} onItemClick={handleBreadcrumbClick} />
-          
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
-            <HomeSearchFilterBar
-                categories={categories}
-                onCategorySelect={handleCategorySelect}
-                onSubcategorySelect={handleSubcategorySelect}
-                currentCategoryName={currentCategoryName}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-            />
-            <FilterPanel
-              locations={locations}
-              onApplyFilters={handleApplyFilters}
-              onClearFilters={handleClearFilters}
-              initialFilters={filters}
-            />
+          {/* Breadcrumb - скрыт на мобильных, показан на планшетах и выше */}
+          <div className="hidden md:block mb-4">
+            <Breadcrumb items={breadcrumbItems} onItemClick={handleBreadcrumbClick} />
           </div>
-
-          {/* Показываем индикатор загрузки при поиске */}
-          {loading && publicAds.length === 0 && searchQuery && (
-            <div className="flex flex-col items-center justify-center py-20">
-              <FeatherIcons.FiLoader className="w-8 h-8 text-teal-600 animate-spin mb-4" />
-              <p className="text-gray-600">Поиск объявлений...</p>
+          
+          {/* Мобильная версия breadcrumb - компактная */}
+          {breadcrumbItems.length > 0 && (
+            <div className="md:hidden mb-3">
+              <Breadcrumb items={breadcrumbItems} onItemClick={handleBreadcrumbClick} />
             </div>
           )}
           
+          {/* Поиск и фильтры - адаптивная верстка */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 md:mb-6 gap-3 md:gap-4">
+            {/* Поисковая строка - полная ширина на мобильных */}
+            <div className="w-full md:flex-1">
+              <HomeSearchFilterBar
+                  categories={categories}
+                  onCategorySelect={handleCategorySelect}
+                  onSubcategorySelect={handleSubcategorySelect}
+                  currentCategoryName={currentCategoryName}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+              />
+            </div>
+            {/* Кнопка фильтров - справа на десктопе, под поиском на мобильных */}
+            <div className="w-full md:w-auto flex justify-end md:justify-start">
+              <FilterPanel
+                locations={locations}
+                onApplyFilters={handleApplyFilters}
+                onClearFilters={handleClearFilters}
+                initialFilters={filters}
+              />
+            </div>
+          </div>
+
+          {/* Индикатор загрузки - адаптивный */}
+          {loading && publicAds.length === 0 && searchQuery && (
+            <div className="flex flex-col items-center justify-center py-12 md:py-20">
+              <FeatherIcons.FiLoader className="w-6 h-6 md:w-8 md:h-8 text-teal-600 animate-spin mb-3 md:mb-4" />
+              <p className="text-sm md:text-base text-gray-600">Поиск объявлений...</p>
+            </div>
+          )}
+          
+          {/* Список объявлений */}
           <AdListSection
               publicAds={publicAds}
               selectedCategory={selectedCategory}

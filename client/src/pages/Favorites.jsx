@@ -7,6 +7,7 @@ import AdCard from "../components/AdCard";
 import { FiHeart, FiLoader, FiBookOpen } from "react-icons/fi";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { fetchFavorites } from "../store/slices/favoritesSlice";
+import useFavorites from "../hooks/useFavorites";
 
 const Favorites = () => {
   const dispatch = useAppDispatch();
@@ -28,12 +29,12 @@ const Favorites = () => {
     setLocalFavoriteAds(favoriteAds);
   }, [favoriteAds]);
 
-  // Обработчик удаления, который обновляет локальное состояние
+  // Обработчик удаления из избранного
   const handleToggleFavorite = async (adId) => {
-    // Обновляем список на странице после удаления
+    // Используем toggleFavorite из хука
+    await toggleFavorite(adId);
+    // Обновляем локальное состояние после удаления
     setLocalFavoriteAds(prev => prev.filter(ad => ad._id !== adId));
-    // Обновляем избранное в store
-    dispatch(fetchFavorites());
   };
 
 
@@ -72,47 +73,32 @@ const Favorites = () => {
 
   // --- ОСНОВНОЕ ОТОБРАЖЕНИЕ ---
   return (
-    <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-8 bg-gray-50">
+    <div className="min-h-[calc(100vh-4rem)] md:min-h-screen bg-gray-50 pb-20 md:pb-0">
       <Toaster position="top-right" />
-      <div className="max-w-screen-xl mx-auto py-8">
-        <h2 className="text-3xl font-extrabold text-gray-900 mb-8 border-b pb-3 flex items-center gap-3">
-          <FiHeart className="w-7 h-7 text-red-500" fill="currentColor" />
-          Избранные Объявления ({localFavoriteAds.length})
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 mb-4 md:mb-8 border-b pb-2 md:pb-3 flex items-center gap-2 md:gap-3">
+          <FiHeart className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-red-500" fill="currentColor" />
+          <span>Избранные Объявления</span>
+          <span className="text-base sm:text-lg md:text-xl text-gray-600 font-normal">({localFavoriteAds.length})</span>
         </h2>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
           {localFavoriteAds.map((ad) => {
-            const fullLocation = [
-              ad.locationId?.name || null,
-              ad.location || null
-            ]
-              .filter(Boolean)
-              .join(", ") || "Не указано";
-
             return (
               <AdCard
                 key={ad._id}
-                adId={ad._id} // Передаем ID
+                adId={ad._id}
                 title={ad.content || ad.title || ""}
                 image={ad.images && ad.images[0] ? ad.images[0] : (ad.imageUrl || null)} 
-                datePosted={new Date(ad.createdAt).toLocaleDateString('ru-RU')}
-                location={fullLocation}
                 price={ad.price}
-                
+                categoryName={ad.subcategory?.name || ad.category?.name || ""}
                 onCardClick={() => navigate(`/ad-view/${ad._id}`)}
-                
-                // На этой странице все элементы избранные (true)
                 isFavorite={true} 
-                onToggleFavorite={handleToggleFavorite} // Используем наш обработчик
-                
-                // В избранном нет кнопок редактирования/удаления объявления
+                onToggleFavorite={handleToggleFavorite}
                 onEdit={null}
                 onDelete={null}
-                
-                // Информация об авторе
                 author={ad.user}
                 onAuthorClick={(userId) => navigate(`/user/${userId}`)}
-                views={ad.views}
               />
             );
           })}

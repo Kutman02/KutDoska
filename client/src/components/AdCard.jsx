@@ -46,113 +46,119 @@ const AdCard = ({
   const isOwner = onEdit !== null || onDelete !== null;
 
   return (
-    // Карточка в стиле Lalafo: компактная, белая, с небольшой тенью, скругленные края.
+    // Карточка - адаптивная для всех устройств
     <div 
-      className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 
-                 cursor-pointer flex flex-col relative border border-gray-100"
+      className="bg-white rounded-xl md:rounded-lg shadow-md hover:shadow-xl active:shadow-lg transition-all duration-300 
+                 cursor-pointer flex flex-col relative border border-gray-100 touch-manipulation active:scale-[0.98]"
     >
-      {/* 1. ИЗОБРАЖЕНИЕ */}
+      {/* 1. ИЗОБРАЖЕНИЕ - адаптивная высота */}
       <div 
         onClick={onCardClick}
-        className="w-full h-36 overflow-hidden rounded-t-lg relative bg-gray-100"
+        className="w-full h-40 sm:h-44 md:h-36 lg:h-40 overflow-hidden rounded-t-xl md:rounded-t-lg relative bg-gray-100"
       >
         {image ? (
           <img 
             src={image} 
             alt={title} 
-            className="w-full h-full object-cover transition duration-300 hover:scale-[1.05]" 
+            className="w-full h-full object-cover transition duration-300 hover:scale-[1.05] active:scale-100" 
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
+          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs md:text-sm">
             Нет фото
           </div>
         )}
       </div>
 
-      {/* 2. КОНТЕНТ */}
-      <div className="p-3 flex flex-col grow">
+      {/* 2. КОНТЕНТ - адаптивные отступы */}
+      <div className="p-3 md:p-3 flex flex-col grow">
         
-        {/* Цена (первая) */}
-        <p className="text-base font-extrabold text-gray-900 mb-1">
+        {/* Цена (первая) - адаптивный размер */}
+        <p className="text-base md:text-base font-extrabold text-gray-900 mb-1">
           {formatPrice(price)}
         </p>
 
-        {/* Категория (вторая) */}
+        {/* Категория (вторая) - адаптивный размер */}
         {categoryName && (
-          <p className="text-xs text-gray-600 mb-1">
+          <p className="text-xs md:text-xs text-gray-600 mb-1.5">
             {categoryName}
           </p>
         )}
 
-        {/* Описание (третья) */}
+        {/* Описание (третья) - адаптивный размер */}
         <div 
           onClick={onCardClick}
-          className="text-sm font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-teal-600 transition"
+          className="text-sm md:text-sm font-semibold text-gray-800 mb-2 md:mb-2 line-clamp-2 hover:text-teal-600 active:text-teal-700 transition cursor-pointer"
         >
           {stripHtml(title || "").substring(0, 100) || ""}
         </div>
 
-        {/* Профиль и избранное (внизу) */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-          {/* Картинка профиля (кликабельная) */}
+        {/* Профиль и избранное (внизу) - адаптивные размеры */}
+        <div className="flex items-center justify-between pt-2 md:pt-2 border-t border-gray-100 mt-auto">
+          {/* Картинка профиля (кликабельная) - адаптивный размер */}
           {author && (
-            <div 
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 onAuthorClick && onAuthorClick(author._id);
               }}
-              className="cursor-pointer hover:opacity-80 transition"
+              className="cursor-pointer hover:opacity-80 active:opacity-70 transition touch-manipulation active:scale-95"
             >
               {author.profileImageUrl ? (
                 <img 
                   src={author.profileImageUrl} 
                   alt={author.displayName || author.name}
-                  className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                  className="w-8 h-8 md:w-8 md:h-8 rounded-full object-cover border border-gray-200"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border border-gray-200">
-                  <FaRegUserCircle className="w-6 h-6 text-gray-400" />
+                <div className="w-8 h-8 md:w-8 md:h-8 rounded-full bg-gray-200 flex items-center justify-center border border-gray-200">
+                  <FaRegUserCircle className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
                 </div>
               )}
-            </div>
+            </button>
           )}
           
-          {/* Кнопка избранного (справа) */}
+          {/* Кнопка избранного (справа) - адаптивный размер для touch */}
           <button 
             onClick={(e) => {
               e.stopPropagation();
               onToggleFavorite && onToggleFavorite(adId);
             }}
-            className={`p-1.5 rounded-full transition-colors
+            className={`p-2 md:p-1.5 rounded-full transition-all touch-manipulation active:scale-90
                        ${isFavorite 
-                          ? 'bg-red-500 text-white hover:bg-red-600' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-red-500'
+                          ? 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-red-500 active:bg-gray-300'
                        }`}
             title={isFavorite ? "Удалить из избранного" : "Добавить в избранное"}
           >
-            <FiHeart className="w-4 h-4" fill={isFavorite ? 'currentColor' : 'none'} />
+            <FiHeart className="w-4 h-4 md:w-4 md:h-4" fill={isFavorite ? 'currentColor' : 'none'} />
           </button>
         </div>
         
-        {/* Кнопки действий владельца */}
+        {/* Кнопки действий владельца - адаптивные для touch */}
         {isOwner && (
-          <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-gray-100">
+          <div className="flex justify-end gap-2 md:gap-2 mt-2 pt-2 border-t border-gray-100">
             {onEdit && (
               <button
-                onClick={onEdit}
-                className="p-1 rounded-md text-gray-500 hover:bg-gray-100 hover:text-blue-600 transition"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                className="p-2 md:p-1 rounded-md text-gray-500 hover:bg-gray-100 hover:text-blue-600 active:bg-gray-200 active:scale-95 transition touch-manipulation"
                 title="Редактировать"
               >
-                <FiEdit className="w-4 h-4" />
+                <FiEdit className="w-4 h-4 md:w-4 md:h-4" />
               </button>
             )}
             {onDelete && (
               <button
-                onClick={onDelete}
-                className="p-1 rounded-md text-gray-500 hover:bg-gray-100 hover:text-red-600 transition"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="p-2 md:p-1 rounded-md text-gray-500 hover:bg-gray-100 hover:text-red-600 active:bg-gray-200 active:scale-95 transition touch-manipulation"
                 title="Удалить"
               >
-                <FiTrash2 className="w-4 h-4" />
+                <FiTrash2 className="w-4 h-4 md:w-4 md:h-4" />
               </button>
             )}
           </div>

@@ -24,6 +24,13 @@ const PrivateRoute = ({ children }) => {
     setChecking(false);
   }, [user, dispatch]);
 
+  // Если нет токена, открываем модальное окно входа
+  useEffect(() => {
+    if (!token && !checking) {
+      dispatch(openLoginModal());
+    }
+  }, [token, checking, dispatch]);
+
   // Пока проверяем, показываем короткий лоадер, чтобы не дергать роутер.
   if (checking) {
     return (
@@ -32,13 +39,6 @@ const PrivateRoute = ({ children }) => {
       </div>
     );
   }
-
-  // Если нет токена, открываем модальное окно входа
-  useEffect(() => {
-    if (!token && !checking) {
-      dispatch(openLoginModal());
-    }
-  }, [token, checking, dispatch]);
 
   return token ? children : null;
 };

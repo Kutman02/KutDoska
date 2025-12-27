@@ -35,17 +35,17 @@ const FilterPanel = ({
 
   return (
     <div className="relative">
-      {/* Кнопка открытия фильтров */}
+      {/* Кнопка открытия фильтров - адаптивная */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors
+        className={`flex items-center gap-2 px-3 md:px-4 py-2 md:py-2.5 rounded-xl md:rounded-lg font-semibold text-sm md:text-base transition-all touch-manipulation active:scale-95
           ${hasActiveFilters 
-            ? 'bg-teal-600 text-white hover:bg-teal-700' 
-            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            ? 'bg-teal-600 text-white hover:bg-teal-700 active:bg-teal-800 shadow-md' 
+            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 active:bg-gray-100'
           }`}
       >
-        <FiFilter className="w-5 h-5" />
-        Фильтры
+        <FiFilter className="w-4 h-4 md:w-5 md:h-5" />
+        <span className="hidden sm:inline">Фильтры</span>
         {hasActiveFilters && (
           <span className="ml-1 bg-white text-teal-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
             !
@@ -53,32 +53,38 @@ const FilterPanel = ({
         )}
       </button>
 
-      {/* Панель фильтров */}
+      {/* Панель фильтров - адаптивная для мобильных */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800">Фильтры</h3>
+        <>
+          {/* Overlay для мобильных - затемняет фон */}
+          <div 
+            className="fixed inset-0 bg-black/30 z-40 md:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="fixed md:absolute inset-x-0 md:right-0 md:inset-x-auto bottom-0 md:top-full md:bottom-auto md:mt-2 w-full md:w-80 max-h-[80vh] md:max-h-none bg-white border-t md:border border-gray-200 rounded-t-3xl md:rounded-lg shadow-2xl md:shadow-xl z-50 p-4 md:p-6 overflow-y-auto">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h3 className="text-lg md:text-xl font-bold text-gray-800">Фильтры</h3>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 active:scale-95 transition-all touch-manipulation p-1"
             >
-              <FiX className="w-5 h-5" />
+              <FiX className="w-5 h-5 md:w-6 md:h-5" />
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 md:space-y-5">
             {/* Город */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <FiMapPin className="w-4 h-4 text-teal-500" />
+              <label className="block text-sm md:text-base font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <FiMapPin className="w-4 h-4 md:w-5 md:h-5 text-teal-500" />
                 Город
               </label>
               <select
                 value={filters.city}
                 onChange={(e) => setFilters({ ...filters, city: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-100 rounded-xl border border-transparent 
+                className="w-full px-4 py-3 md:py-2.5 bg-gray-100 rounded-xl border border-transparent 
                          focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white 
-                         text-gray-800 transition duration-200"
+                         text-gray-800 text-base md:text-sm transition duration-200 touch-manipulation"
               >
                 <option value="">Все города</option>
                 {locations.map((location) => (
@@ -91,8 +97,8 @@ const FilterPanel = ({
 
             {/* Цена от */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <FiDollarSign className="w-4 h-4 text-teal-500" />
+              <label className="block text-sm md:text-base font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <FiDollarSign className="w-4 h-4 md:w-5 md:h-5 text-teal-500" />
                 Цена от (KGS)
               </label>
               <input
@@ -101,16 +107,16 @@ const FilterPanel = ({
                 placeholder="0"
                 value={filters.priceFrom}
                 onChange={(e) => setFilters({ ...filters, priceFrom: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-100 rounded-xl border border-transparent 
+                className="w-full px-4 py-3 md:py-2.5 bg-gray-100 rounded-xl border border-transparent 
                          focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white 
-                         text-gray-800 transition duration-200"
+                         text-gray-800 text-base md:text-sm transition duration-200"
               />
             </div>
 
             {/* Цена до */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                <FiDollarSign className="w-4 h-4 text-teal-500" />
+              <label className="block text-sm md:text-base font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <FiDollarSign className="w-4 h-4 md:w-5 md:h-5 text-teal-500" />
                 Цена до (KGS)
               </label>
               <input
@@ -119,31 +125,32 @@ const FilterPanel = ({
                 placeholder="Без ограничений"
                 value={filters.priceTo}
                 onChange={(e) => setFilters({ ...filters, priceTo: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-100 rounded-xl border border-transparent 
+                className="w-full px-4 py-3 md:py-2.5 bg-gray-100 rounded-xl border border-transparent 
                          focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white 
-                         text-gray-800 transition duration-200"
+                         text-gray-800 text-base md:text-sm transition duration-200"
               />
             </div>
           </div>
 
-          {/* Кнопки действий */}
-          <div className="flex gap-3 mt-6">
+          {/* Кнопки действий - адаптивные */}
+          <div className="flex gap-3 mt-6 md:mt-8 sticky bottom-0 bg-white pt-4 pb-2 md:pb-0 md:static">
             <button
               onClick={handleClear}
-              className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-semibold 
-                       hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-3 md:py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-base md:text-sm
+                       hover:bg-gray-200 active:bg-gray-300 transition-colors touch-manipulation active:scale-95"
             >
               Сбросить
             </button>
             <button
               onClick={handleApply}
-              className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-xl font-semibold 
-                       hover:bg-teal-700 transition-colors"
+              className="flex-1 px-4 py-3 md:py-2.5 bg-teal-600 text-white rounded-xl font-semibold text-base md:text-sm
+                       hover:bg-teal-700 active:bg-teal-800 transition-colors touch-manipulation active:scale-95 shadow-md"
             >
               Применить
             </button>
           </div>
         </div>
+        </>
       )}
     </div>
   );
