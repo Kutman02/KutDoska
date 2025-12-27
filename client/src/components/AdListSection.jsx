@@ -105,17 +105,6 @@ const AdListSection = ({
                       // Логика проверки владельца перенесена сюда
                       const isOwner = user?._id && (user._id === (ad.user?._id || ad.user)); 
                       
-                      // 🚨 ИСПРАВЛЕНИЕ: Вычисление полного адреса для AdCard
-                      const fullLocation = [
-                          // 1. Берем название местоположения из связанного ID (например, Город)
-                          ad.locationId?.name || null,
-                          // 2. Берем строковое поле адреса (например, Улица)
-                          ad.location || null
-                      ]
-                      // Фильтруем пустые значения (null) и объединяем их через запятую
-                      .filter(Boolean)
-                      .join(", ");
-                      
                       return (
                           <AdCard
                           key={ad._id}
@@ -123,10 +112,8 @@ const AdListSection = ({
                           title={ad.content || ad.title || ""}
                           image={ad.images?.[0] || ad.imageUrl} 
                           descriptionSnippet={stripHtml(ad.content)?.slice(0, 100)} 
-                          datePosted={new Date(ad.createdAt).toLocaleDateString('ru-RU')}
                           tags={ad.tags || []}
                           price={ad.price}
-                          location={fullLocation}
                           categoryName={ad.subcategory?.name || ad.category?.name || ""} 
                           onCardClick={() => navigate(`/ad-view/${ad._id}`)} 
                           onEdit={isOwner ? () => navigate(`/edit-ad/${ad._id}`) : null}
@@ -135,7 +122,6 @@ const AdListSection = ({
                           onToggleFavorite={toggleFavorite}
                           author={ad.user}
                           onAuthorClick={(userId) => navigate(`/user/${userId}`)}
-                          views={ad.views}
                           />
                       );
                   })}

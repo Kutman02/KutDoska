@@ -2,7 +2,7 @@
 
 import React from 'react';
 // Добавляем FiUser для отображения владельца (если нужно, хотя тут не используется)
-import { FiEdit, FiTrash2, FiMapPin, FiHeart, FiUser, FiEye } from 'react-icons/fi'; 
+import { FiEdit, FiTrash2, FiHeart } from 'react-icons/fi'; 
 import { FaRegUserCircle } from 'react-icons/fa';
 
 // Вспомогательная функция для очистки HTML
@@ -14,23 +14,19 @@ const stripHtml = (html) => {
 };
 
 const AdCard = ({ 
-  adId, // НОВЫЙ ПРОПС: ID объявления для работы с избранным
+  adId, // ID объявления для работы с избранным
   title, 
   image, 
-  datePosted, 
   price, 
-  location, 
   onCardClick, 
   onEdit, 
   onDelete,
-  // НОВЫЕ ПРОПСЫ ДЛЯ ИЗБРАННОГО
+  // ПРОПСЫ ДЛЯ ИЗБРАННОГО
   isFavorite, 
   onToggleFavorite,
   // Информация об авторе
   author,
   onAuthorClick,
-  // Количество просмотров
-  views,
   // Категория
   categoryName
 }) => {
@@ -96,22 +92,6 @@ const AdCard = ({
           {stripHtml(title || "").substring(0, 100) || ""}
         </div>
 
-        {/* Мета-информация (Локация, Просмотры, Дата) */}
-        <div className="flex items-center text-xs text-gray-500 mt-auto pt-1 mb-2">
-            <FiMapPin className="w-3 h-3 mr-1 shrink-0" />
-            <span className="truncate">{location || "Не указано"}</span>
-            <span className="ml-auto flex items-center gap-1">
-              {views !== undefined && views > 0 && (
-                <>
-                  <FiEye className="w-3 h-3" />
-                  <span>{views}</span>
-                  <span>·</span>
-                </>
-              )}
-              <span>{datePosted}</span>
-            </span>
-        </div>
-        
         {/* Профиль и избранное (внизу) */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           {/* Картинка профиля (кликабельная) */}
