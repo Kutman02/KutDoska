@@ -175,24 +175,32 @@ export const searchAds = async (req, res) => {
 
         // Используем умный regex поиск (более гибкий, чем текстовый индекс)
         // Объединяем все условия через $or для максимального охвата
-        let ads;
+        let ads = [];
         
         if (searchConditions.length > 0) {
             // Используем $or для поиска по любому из условий (более гибкий поиск)
-            ads = await Ad.find({
-                ...filter,
-                $or: searchConditions
-            })
-            .populate("user", "name email phone")
-            .populate("category", "name icon")
-            .populate("subcategory", "name")
-            .populate("locationId", "name")
-            .sort({ createdAt: -1 })
-            .limit(100) // Увеличиваем лимит для лучшего покрытия
-            .exec();
+            try {
+                ads = await Ad.find({
+                    ...filter,
+                    $or: searchConditions
+                })
+                .populate("user", "name email phone")
+                .populate("category", "name icon")
+                .populate("subcategory", "name")
+                .populate("locationId", "name")
+                .sort({ createdAt: -1 })
+                .limit(100) // Увеличиваем лимит для лучшего покрытия
+                .exec();
+            } catch (dbError) {
+                console.error("Ошибка выполнения поиска в БД:", dbError);
+                throw new Error("Ошибка выполнения поиска в базе данных");
+            }
             
             // Дополнительная фильтрация и ранжирование результатов на стороне приложения
             // Сортируем по релевантности: точные совпадения выше
+            if (!ads || !Array.isArray(ads)) {
+                ads = [];
+            }
             ads = ads.map(ad => {
                 let relevanceScore = 0;
                 const adContent = normalizeText(ad.content || '');
@@ -244,18 +252,25 @@ export const searchAds = async (req, res) => {
         }
 
         // Добавляем информацию о профиле для каждого объявления
-        const ProfileSettings = (await import("../models/ProfileSettings.js")).default;
+        if (!ads || !Array.isArray(ads)) {
+            ads = [];
+        }
         const adsWithProfile = await Promise.all(
             ads.map(async (ad) => {
-                if (ad.user && ad.user._id) {
-                    const profileSettings = await ProfileSettings.findOne({ user: ad.user._id });
-                    if (profileSettings) {
-                        ad.user = {
-                            ...ad.user.toObject(),
-                            displayName: profileSettings.displayName || ad.user.name,
-                            profileImageUrl: profileSettings.profileImageUrl || "",
-                        };
+                try {
+                    if (ad.user && ad.user._id) {
+                        const profileSettings = await ProfileSettings.findOne({ user: ad.user._id });
+                        if (profileSettings) {
+                            ad.user = {
+                                ...ad.user.toObject(),
+                                displayName: profileSettings.displayName || ad.user.name,
+                                profileImageUrl: profileSettings.profileImageUrl || "",
+                            };
+                        }
                     }
+                } catch (profileError) {
+                    console.error("Ошибка загрузки профиля для объявления:", profileError);
+                    // Продолжаем без профиля, если ошибка
                 }
                 return ad;
             })

@@ -84,15 +84,8 @@ const Navbar = () => {
         dispatch(fetchFavorites());
       }, 30000);
       
-      // Слушаем события обновления избранного
-      const handleFavoritesUpdate = () => {
-        dispatch(fetchFavorites());
-      };
-      window.addEventListener('favoritesUpdated', handleFavoritesUpdate);
-      
       return () => {
         clearInterval(interval);
-        window.removeEventListener('favoritesUpdated', handleFavoritesUpdate);
       };
     }
   }, [isLoggedIn, dispatch]);

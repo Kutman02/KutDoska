@@ -92,8 +92,6 @@ const favoritesSlice = createSlice({
         state.favorites = action.payload;
         state.favoriteIds = action.payload.map(ad => ad._id);
         state.count = action.payload.length;
-        // Отправляем событие для обновления счетчика в Navbar
-        window.dispatchEvent(new Event('favoritesUpdated'));
       })
       .addCase(fetchFavorites.rejected, (state, action) => {
         state.loading = false;
@@ -111,8 +109,6 @@ const favoritesSlice = createSlice({
           state.favoriteIds = state.favoriteIds.filter(id => id !== adId);
           state.count = state.favoriteIds.length;
         }
-        // Отправляем событие для обновления счетчика в Navbar
-        window.dispatchEvent(new Event('favoritesUpdated'));
       });
   },
 });
