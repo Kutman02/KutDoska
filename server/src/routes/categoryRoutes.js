@@ -44,17 +44,52 @@ categoryRouter.post("/create", requireSignIn, isAdmin, async (req, res) => {
 });
 
 
+// Функция для генерации slug из названия
+const generateSlug = (name) => {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '') // Удаляем спецсимволы
+    .replace(/[\s_-]+/g, '-') // Заменяем пробелы и подчеркивания на дефисы
+    .replace(/^-+|-+$/g, ''); // Удаляем дефисы в начале и конце
+};
+
 // 2. Получение всех главных категорий (для отображения на доске)
 categoryRouter.get("/", async (req, res) => {
     try {
         // Ищем только главные категории (parent: null) и заполняем subcategories
-        const categories = await Category.find({ parent: null })
+        let categories = await Category.find({ parent: null })
             .populate("subcategories", "name slug") // Заполняем имя и slug подкатегории
+            .select("name slug icon subcategories")
+            .sort({ name: 1 });
+
+        // Генерируем slug для категорий, у которых его нет
+        for (let category of categories) {
+            if (!category.slug && category.name) {
+                let baseSlug = generateSlug(category.name);
+                let slug = baseSlug;
+                let counter = 1;
+                
+                // Проверяем уникальность slug
+                while (await Category.findOne({ slug, _id: { $ne: category._id } })) {
+                    slug = `${baseSlug}-${counter}`;
+                    counter++;
+                }
+                
+                category.slug = slug;
+                await category.save();
+            }
+        }
+
+        // Перезагружаем категории после обновления
+        categories = await Category.find({ parent: null })
+            .populate("subcategories", "name slug")
             .select("name slug icon subcategories")
             .sort({ name: 1 });
 
         res.status(200).json(categories);
     } catch (error) {
+        console.error("Error fetching categories:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 });

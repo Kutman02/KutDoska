@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import * as FeatherIcons from "react-icons/fi"; 
+import toast from "react-hot-toast";
 
 // Импортируем компоненты и хуки
 import Breadcrumb from "../components/Breadcrumb";
@@ -11,39 +12,34 @@ import AdListSection from "../components/AdListSection";
 import FilterPanel from "../components/FilterPanel";
 import { useAppSelector } from "../store/hooks";
 import useFavorites from "../hooks/useFavorites";
+import useHomeAdsLogic from "../hooks/useHomeAdsLogic";
 import useAdActions from "../hooks/useAdActions";
-import toast from "react-hot-toast";
 
 const PublicHome = () => {
   const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth); 
   
-  const [publicAds, setPublicAds] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  // 1. Логика и данные из хука
+  const { 
+    publicAds, setPublicAds, categories, subcategories, 
+    selectedCategory, selectedSubcategory, loading, 
+    searchQuery, setSearchQuery,
+    handleCategorySelect, handleSubcategorySelect 
+  } = useHomeAdsLogic(); 
+  
+  // 2. Логика избранного
+  const { isFavorite, toggleFavorite } = useFavorites(); 
+  
+  // 3. Логика действий (удаление)
+  const { handleDelete } = useAdActions({ setPublicAds }); 
+  
+  // 4. Фильтры (город, цена)
   const [locations, setLocations] = useState([]);
   const [filters, setFilters] = useState({
     city: '',
     priceFrom: '',
     priceTo: '',
   });
-
-  // Загрузка категорий
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch("http://localhost:8080/api/categories");
-        if (!response.ok) throw new Error("Не удалось загрузить категории.");
-        const data = await response.json();
-        setCategories(data);
-      } catch (error) {
-        console.error("Ошибка:", error);
-        toast.error("Ошибка при загрузке категорий.");
-      }
-    };
-    fetchCategories();
-  }, []);
 
   // Загрузка локаций
   useEffect(() => {
@@ -60,15 +56,22 @@ const PublicHome = () => {
     fetchLocations();
   }, []);
 
-  // Загрузка объявлений
+  // Обновление объявлений с учетом фильтров (переопределяем загрузку из хука)
   useEffect(() => {
     const fetchPublicAds = async () => {
-      setLoading(true);
       setPublicAds([]);
 
       try {
         const params = new URLSearchParams();
 
+        // Фильтр по категории/подкатегории
+        if (selectedSubcategory) {
+          params.append('subcategory', selectedSubcategory);
+        } else if (selectedCategory) {
+          params.append('category', selectedCategory);
+        }
+
+        // Фильтры по городу и цене
         if (filters.city) {
           params.append('location', filters.city);
         }
@@ -105,24 +108,11 @@ const PublicHome = () => {
         console.error("Ошибка:", error);
         toast.error(error.message);
         setPublicAds([]);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchPublicAds();
-  }, [searchQuery, filters]);
-
-  const handleCategorySelect = (categoryId) => {
-    const category = categories.find(c => c._id === categoryId);
-    if (category && category.slug) {
-      navigate(`/${category.slug}`);
-    }
-  };
-
-  const handleSubcategorySelect = () => {
-    // На главной странице подкатегории не используются
-  };
+  }, [selectedCategory, selectedSubcategory, searchQuery, filters, setPublicAds]);
 
   const handleApplyFilters = (newFilters) => {
     setFilters(newFilters);
@@ -136,9 +126,7 @@ const PublicHome = () => {
     });
   };
   
-  const { isFavorite, toggleFavorite } = useFavorites(); 
-  const { handleDelete } = useAdActions({ setPublicAds }); 
-  
+  // --- Состояния Загрузки ---
   const isInitialLoad = loading && publicAds.length === 0;
   
   if (isInitialLoad) {
@@ -149,6 +137,43 @@ const PublicHome = () => {
       </div>
     );
   }
+  
+  // --- Вычисление данных для рендеринга ---
+  
+  // Breadcrumbs
+  const breadcrumbItems = [];
+  if (selectedCategory) {
+    const category = categories.find(c => c._id === selectedCategory);
+    if (category) breadcrumbItems.push({ 
+      label: category.name, 
+      path: '/', 
+      categoryId: selectedCategory 
+    });
+    
+    if (selectedSubcategory) {
+      const subcategory = subcategories.find(s => s._id === selectedSubcategory);
+      if (subcategory) breadcrumbItems.push({ 
+        label: subcategory.name, 
+        path: '/', 
+        categoryId: selectedCategory,
+        subcategoryId: selectedSubcategory 
+      });
+    }
+  }
+
+  // Обработчик клика по breadcrumb
+  const handleBreadcrumbClick = (categoryId) => {
+    if (categoryId === null) {
+      // Сброс всех фильтров
+      handleCategorySelect(null);
+    } else {
+      // Установка категории
+      handleCategorySelect(categoryId);
+    }
+  };
+
+  // Имя текущей категории для отображения в строке поиска
+  const currentCategoryName = categories.find(c => c._id === selectedCategory)?.name || "Все категории";
 
   return (
     <>
@@ -156,12 +181,14 @@ const PublicHome = () => {
       <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-8 bg-gray-50">
         <div className="max-w-screen-xl mx-auto py-8">
           
+          <Breadcrumb items={breadcrumbItems} onItemClick={handleBreadcrumbClick} />
+          
           <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
             <HomeSearchFilterBar
                 categories={categories}
                 onCategorySelect={handleCategorySelect}
                 onSubcategorySelect={handleSubcategorySelect}
-                currentCategoryName="Все категории"
+                currentCategoryName={currentCategoryName}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
             />
@@ -183,10 +210,10 @@ const PublicHome = () => {
           
           <AdListSection
               publicAds={publicAds}
-              selectedCategory={null}
-              selectedSubcategory={null}
+              selectedCategory={selectedCategory}
+              selectedSubcategory={selectedSubcategory}
               categories={categories}
-              subcategories={[]}
+              subcategories={subcategories}
               handleCategorySelect={handleCategorySelect}
               user={user}
               navigate={navigate}

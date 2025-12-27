@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import * as FeatherIcons from "react-icons/fi";
 
 // Хелпер для иконок
@@ -12,7 +11,6 @@ const getIconComponent = (iconName) => {
 const CategoryDropdown = ({ categories, onCategorySelect, onSubcategorySelect }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [hoveredCategory, setHoveredCategory] = useState(null);
-    const navigate = useNavigate();
     
     const dropdownRef = useRef(null);
 
@@ -36,15 +34,10 @@ const CategoryDropdown = ({ categories, onCategorySelect, onSubcategorySelect })
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // 1. Обработчик клика по ГЛАВНОЙ категории (переход на роут категории)
+    // 1. Обработчик клика по ГЛАВНОЙ категории (вызывает фильтрацию и закрывает меню)
     const handleCategoryClick = (categoryId) => {
-        const category = categories.find(c => c._id === categoryId);
-        if (category && category.slug) {
-            navigate(`/${category.slug}`);
-        } else {
-            onCategorySelect(categoryId, { isDropdownSelection: true });
-            onSubcategorySelect(null);
-        }
+        onCategorySelect(categoryId, { isDropdownSelection: true });
+        onSubcategorySelect(null); // Сбрасываем подкатегорию, чтобы показать ВСЕ в этой категории
         setIsOpen(false);
     };
 

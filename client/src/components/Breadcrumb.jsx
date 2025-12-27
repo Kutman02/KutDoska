@@ -1,10 +1,11 @@
 // src/components/Breadcrumb.jsx
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FiHome, FiChevronRight } from 'react-icons/fi';
 
-const Breadcrumb = ({ items = [], showHomeIcon = false }) => {
+const Breadcrumb = ({ items = [], showHomeIcon = false, onItemClick }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isHomePage = location.pathname === '/';
   
   // Если на главной странице и нет дополнительных элементов, не показываем breadcrumb
@@ -17,7 +18,7 @@ const Breadcrumb = ({ items = [], showHomeIcon = false }) => {
   
   // Добавляем "Главная" только если есть другие элементы или явно запрошена иконка
   if ((items && items.length > 0) || showHomeIcon) {
-    breadcrumbItems.push({ label: 'Главная', path: '/' });
+    breadcrumbItems.push({ label: 'Главная', path: '/', categoryId: null });
   }
 
   // Добавляем переданные элементы
@@ -29,6 +30,26 @@ const Breadcrumb = ({ items = [], showHomeIcon = false }) => {
   if (breadcrumbItems.length === 0) {
     return null;
   }
+
+  const handleClick = (e, item) => {
+    // Если есть обработчик клика, используем его
+    if (onItemClick && item.categoryId !== undefined) {
+      e.preventDefault();
+      if (item.categoryId === null) {
+        // Сброс фильтров (Главная)
+        onItemClick(null);
+      } else {
+        // Установка категории
+        onItemClick(item.categoryId);
+      }
+    } else if (item.path && !item.path.includes('?')) {
+      // Если путь не содержит query параметров, используем обычную навигацию
+      navigate(item.path);
+    } else {
+      // Если путь содержит query параметры, предотвращаем переход
+      e.preventDefault();
+    }
+  };
 
   return (
     <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-4 overflow-x-auto scrollbar-hide" aria-label="Breadcrumb">
@@ -45,12 +66,12 @@ const Breadcrumb = ({ items = [], showHomeIcon = false }) => {
               
               {isFirst && showHomeIcon ? (
                 // Первый элемент с иконкой дома (если явно запрошено)
-                <Link
-                  to={item.path}
-                  className="flex items-center hover:text-teal-600 transition-colors"
+                <button
+                  onClick={(e) => handleClick(e, item)}
+                  className="flex items-center hover:text-teal-600 transition-colors cursor-pointer"
                 >
                   <FiHome className="w-4 h-4" />
-                </Link>
+                </button>
               ) : isLast ? (
                 // Последний элемент - не кликабельный
                 <span className="text-gray-900 font-medium truncate max-w-[200px] sm:max-w-none">
@@ -58,12 +79,12 @@ const Breadcrumb = ({ items = [], showHomeIcon = false }) => {
                 </span>
               ) : (
                 // Промежуточные элементы - кликабельные
-                <Link
-                  to={item.path}
-                  className="hover:text-teal-600 transition-colors truncate max-w-[200px] sm:max-w-none"
+                <button
+                  onClick={(e) => handleClick(e, item)}
+                  className="hover:text-teal-600 transition-colors truncate max-w-[200px] sm:max-w-none cursor-pointer text-left"
                 >
                   {item.label}
-                </Link>
+                </button>
               )}
             </li>
           );
