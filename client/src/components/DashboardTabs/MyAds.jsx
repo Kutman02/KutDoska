@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import AdCard from "../AdCard";
 // SearchBar больше не нужен
 import { FiGrid, FiArrowLeft, FiArrowRight, FiPlus } from "react-icons/fi";
+import { useAppDispatch } from "../../store/hooks";
+import { openLoginModal } from "../../store/slices/authSlice";
 
 const ADS_PER_PAGE = 10; 
 
@@ -24,13 +26,14 @@ const MyAds = ({ user }) => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   const fetchAds = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        navigate("/login");
+        dispatch(openLoginModal());
         throw new Error("Токен аутентификации не найден");
       }
 
@@ -51,12 +54,12 @@ const MyAds = ({ user }) => {
       console.error(err.message);
       setError(err.message);
       if (err.message.includes("Authentication")) {
-          navigate("/login");
+          dispatch(openLoginModal());
       }
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [dispatch]);
 
   useEffect(() => {
     fetchAds();

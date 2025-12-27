@@ -2,20 +2,20 @@ import { useState, useEffect } from "react";
 import { FiLogOut, FiPlusSquare, FiUser, FiHome, FiLogIn, FiHeart, FiMessageSquare, FiLayout } from "react-icons/fi";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
-import { logout } from "../store/slices/authSlice";
+import { logout, openLoginModal, openRegisterModal } from "../store/slices/authSlice";
 import { fetchFavorites } from "../store/slices/favoritesSlice";
 
 // --- Компонент Нижней Навигации для Мобильных Устройств ---
-const BottomNav = ({ isLoggedIn, favoritesCount = 0 }) => {
+const BottomNav = ({ isLoggedIn, favoritesCount = 0, onOpenLogin }) => {
     const location = useLocation();
     
     // Определяем иконки и маршруты для нижней панели
     const navItems = [
         { name: "Домой", icon: FiHome, path: "/" },
-        { name: "Избранное", icon: FiHeart, path: isLoggedIn ? "/favorites" : "/login" }, 
-        { name: "Подать", icon: FiPlusSquare, path: "/create", isAccent: true }, 
-        { name: "Чаты", icon: FiMessageSquare, path: isLoggedIn ? "/chats" : "/login" },
-        { name: "Профиль", icon: FiUser, path: isLoggedIn ? "/dashboard" : "/login" },
+        { name: "Избранное", icon: FiHeart, path: isLoggedIn ? "/favorites" : null, requiresAuth: !isLoggedIn }, 
+        { name: "Подать", icon: FiPlusSquare, path: "/create", isAccent: true, requiresAuth: !isLoggedIn }, 
+        { name: "Чаты", icon: FiMessageSquare, path: isLoggedIn ? "/chats" : null, requiresAuth: !isLoggedIn },
+        { name: "Профиль", icon: FiUser, path: isLoggedIn ? "/dashboard" : null, requiresAuth: !isLoggedIn },
     ];
 
     return (
@@ -29,15 +29,42 @@ const BottomNav = ({ isLoggedIn, favoritesCount = 0 }) => {
                     const inactiveClass = "text-gray-500 hover:bg-gray-100";
                     
                     if (item.isAccent) {
+                        if (item.requiresAuth) {
+                            return (
+                                <button
+                                    key={item.name}
+                                    onClick={onOpenLogin}
+                                    className="flex flex-col items-center justify-center p-2 rounded-full transform -translate-y-4 
+                                               bg-teal-600 text-white w-14 h-14 shadow-xl shadow-teal-400/70 hover:bg-teal-700 transition duration-300"
+                                >
+                                    <item.icon className="w-6 h-6" />
+                                </button>
+                            );
+                        }
                         return (
                             <Link
                                 key={item.name}
-                                to={isLoggedIn ? item.path : "/login"}
+                                to={item.path}
                                 className="flex flex-col items-center justify-center p-2 rounded-full transform -translate-y-4 
                                            bg-teal-600 text-white w-14 h-14 shadow-xl shadow-teal-400/70 hover:bg-teal-700 transition duration-300"
                             >
                                 <item.icon className="w-6 h-6" />
                             </Link>
+                        );
+                    }
+
+                    if (item.requiresAuth) {
+                        return (
+                            <button
+                                key={item.name}
+                                onClick={onOpenLogin}
+                                className={`flex flex-col items-center p-2 rounded-xl transition duration-200 relative ${
+                                    isActive ? activeClass : inactiveClass
+                                }`}
+                            >
+                                <item.icon className="w-6 h-6" />
+                                <span className="text-xs mt-0.5">{item.name}</span>
+                            </button>
                         );
                     }
 
@@ -93,7 +120,7 @@ const Navbar = () => {
   const handleLogout = () => {
     dispatch(logout());
     setDropdownOpen(false);
-    navigate("/login");
+    navigate("/");
   };
 
   const getInitial = () => user?.name?.[0]?.toUpperCase() || "U";
@@ -193,22 +220,26 @@ const Navbar = () => {
 
                   {dropdownOpen && (
                     <div className="absolute right-0 mt-3 w-48 bg-white shadow-xl shadow-gray-400/50 rounded-xl overflow-hidden z-50 border border-gray-200">
-                      <Link
-                        to="/login"
-                        onClick={() => setDropdownOpen(false)}
+                      <button
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          dispatch(openLoginModal());
+                        }}
                         className="flex items-center gap-2 w-full text-left px-4 py-3 text-gray-700 hover:bg-teal-50 transition duration-200 border-b border-gray-200"
                       >
                         <FiLogIn className="w-5 h-5 text-teal-500" />
                         Войти
-                      </Link>
-                      <Link
-                        to="/register"
-                        onClick={() => setDropdownOpen(false)}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          dispatch(openRegisterModal());
+                        }}
                         className="flex items-center gap-2 w-full text-left px-4 py-3 text-gray-700 hover:bg-teal-50 transition duration-200"
                       >
                         <FiUser className="w-5 h-5 text-teal-500" />
                         Регистрация
-                      </Link>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -219,7 +250,11 @@ const Navbar = () => {
       </nav>
       
       {/* 2. Нижняя панель навигации (Только для мобильных, md:hidden) */}
-      <BottomNav isLoggedIn={isLoggedIn} favoritesCount={favoritesCount} />
+      <BottomNav 
+        isLoggedIn={isLoggedIn} 
+        favoritesCount={favoritesCount} 
+        onOpenLogin={() => dispatch(openLoginModal())}
+      />
     </>
   );
 };

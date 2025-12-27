@@ -1,8 +1,7 @@
 // src/components/PrivateRoute.jsx
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
-import { setUser } from "../store/slices/authSlice";
+import { setUser, openLoginModal } from "../store/slices/authSlice";
 
 const PrivateRoute = ({ children }) => {
   const { user, token } = useAppSelector((state) => state.auth);
@@ -34,7 +33,14 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  return token ? children : <Navigate to="/login" replace />;
+  // Если нет токена, открываем модальное окно входа
+  useEffect(() => {
+    if (!token && !checking) {
+      dispatch(openLoginModal());
+    }
+  }, [token, checking, dispatch]);
+
+  return token ? children : null;
 };
 
 export default PrivateRoute;

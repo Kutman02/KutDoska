@@ -1,9 +1,9 @@
 // src/hooks/useFavorites.js
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { toggleFavorite as toggleFavoriteAction, fetchFavorites } from '../store/slices/favoritesSlice';
+import { openLoginModal } from '../store/slices/authSlice';
 
 const useFavorites = () => {
     const dispatch = useAppDispatch();
@@ -11,7 +11,6 @@ const useFavorites = () => {
     const { favoriteIds: storeFavoriteIds } = useAppSelector((state) => state.favorites);
     const [favoriteIds, setFavoriteIds] = useState(new Set(storeFavoriteIds)); 
     const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
 
     // Синхронизация с store
     useEffect(() => {
@@ -47,7 +46,7 @@ const useFavorites = () => {
     const toggleFavorite = useCallback(async (adId) => {
         if (!user) {
             toast.error("Войдите в систему, чтобы добавить в избранное.");
-            navigate("/login");
+            dispatch(openLoginModal());
             return;
         }
 
@@ -73,7 +72,7 @@ const useFavorites = () => {
             console.error(err);
             toast.error(err.message || "Ошибка операции с избранным.");
         }
-    }, [favoriteIds, user, navigate, dispatch]);
+    }, [favoriteIds, user, dispatch]);
 
     // 3. Проверка статуса
     const isFavorite = useCallback((adId) => {

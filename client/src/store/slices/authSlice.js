@@ -58,6 +58,8 @@ const initialState = {
   token: localStorage.getItem("token") || null,
   loading: false,
   error: null,
+  showLoginModal: false,
+  showRegisterModal: false,
 };
 
 const authSlice = createSlice({
@@ -68,6 +70,8 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.error = null;
+      state.showLoginModal = false;
+      state.showRegisterModal = false;
       localStorage.removeItem("user");
       localStorage.removeItem("token");
     },
@@ -79,6 +83,24 @@ const authSlice = createSlice({
     },
     clearError: (state) => {
       state.error = null;
+    },
+    openLoginModal: (state) => {
+      state.showLoginModal = true;
+      state.showRegisterModal = false;
+    },
+    openRegisterModal: (state) => {
+      state.showRegisterModal = true;
+      state.showLoginModal = false;
+    },
+    closeLoginModal: (state) => {
+      state.showLoginModal = false;
+    },
+    closeRegisterModal: (state) => {
+      state.showRegisterModal = false;
+    },
+    closeAllModals: (state) => {
+      state.showLoginModal = false;
+      state.showRegisterModal = false;
     },
   },
   extraReducers: (builder) => {
@@ -92,6 +114,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.token = action.payload.token;
+        state.showLoginModal = false;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -106,6 +129,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.token = action.payload.token;
+        state.showRegisterModal = false;
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
@@ -114,6 +138,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, setUser, clearError } = authSlice.actions;
+export const { logout, setUser, clearError, openLoginModal, openRegisterModal, closeLoginModal, closeRegisterModal, closeAllModals } = authSlice.actions;
 export default authSlice.reducer;
 

@@ -3,8 +3,6 @@ import { Route, Routes } from "react-router-dom";
 import "./App.css";
 import Dashboard from "./pages/Dashboard";
 import CreateAd from "./pages/CreateAd";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
 import Navbar from "./components/Navbar";
 import EditAd from "./pages/EditAd";
 import { Toaster } from "react-hot-toast";
@@ -17,6 +15,8 @@ import AdView from "./pages/AdView";
 import Favorites from "./pages/Favorites"; 
 import Chats from "./pages/chats";
 import UserProfile from "./pages/UserProfile";
+import LoginModal from "./components/LoginModal";
+import RegisterModal from "./components/RegisterModal";
 
 function App() {
   const dispatch = useAppDispatch();
@@ -36,6 +36,9 @@ function App() {
     <>
       <Toaster position="top-right" />
       <Navbar />
+      {/* Модальные окна */}
+      <LoginModal />
+      <RegisterModal />
       {/* Главный контейнер для контента */}
       <div className="min-h-screen md:min-h-[calc(100vh-4rem)] bg-gray-50 pb-20 md:pb-0"> 
         <Routes>
@@ -55,10 +58,6 @@ function App() {
           {/* 💡 НОВЫЙ ЗАЩИЩЕННЫЙ МАРШРУТ: Избранное */}
           <Route path="/favorites" element={<PrivateRoute><Favorites /></PrivateRoute>} />
           <Route path="/chats" element={<PrivateRoute><Chats /></PrivateRoute>} />
-
-          {/* 🌐 ПУБЛИЧНЫЕ МАРШРУТЫ */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
         </Routes>
       </div>
     </>
