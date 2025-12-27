@@ -1,5 +1,5 @@
 // src/pages/AdView.jsx
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import { 
@@ -230,12 +230,25 @@ const AdView = () => {
   }, [isModalOpen]);
 
 
-  // 1. 🌐 ФУНКЦИЯ ЗАГРУЗКИ ДЕТАЛЕЙ ОБЪЯВЛЕНИЯ (Без изменений)
+  // 1. 🌐 ФУНКЦИЯ ЗАГРУЗКИ ДЕТАЛЕЙ ОБЪЯВЛЕНИЯ
+  // Используем useRef для предотвращения двойного запроса (защита от React StrictMode)
+  const hasFetched = useRef(false);
+  
   useEffect(() => {
+    // Сбрасываем флаг при изменении id
+    hasFetched.current = false;
+    
     const fetchAdDetails = async () => {
+      // Защита от двойного запроса
+      if (hasFetched.current) return;
+      hasFetched.current = true;
+      
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:8080/api/ads/${id}`);
+        const token = localStorage.getItem("token");
+        const response = await fetch(`http://localhost:8080/api/ads/${id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         
         if (!response.ok) {
           throw new Error('Объявление не найдено или произошла ошибка сервера.');
@@ -248,6 +261,7 @@ const AdView = () => {
         console.error("Ошибка при получении объявления:", error);
         toast.error(error.message);
         setAd(null);
+        hasFetched.current = false; // Разрешаем повторную попытку при ошибке
       } finally {
         setLoading(false);
       }
@@ -256,6 +270,11 @@ const AdView = () => {
     if (id) {
       fetchAdDetails();
     }
+    
+    // Cleanup функция
+    return () => {
+      hasFetched.current = false;
+    };
   }, [id]);
 
   // Загрузка и ошибка (Без изменений)

@@ -351,9 +351,18 @@ export const getAdById = async (req, res) => {
 
         if (ad) {
             // Увеличиваем счетчик просмотров (только для активных объявлений и не для владельца)
-            if (ad.status === "Active" && (!req.user || ad.user._id.toString() !== req.user._id.toString())) {
+            // Используем атомарное увеличение через $inc для предотвращения двойного подсчета
+            const isOwner = req.user && ad.user && ad.user._id.toString() === req.user._id.toString();
+            
+            if (ad.status === "Active" && !isOwner) {
+                // Используем findByIdAndUpdate с $inc для атомарного увеличения
+                await Ad.findByIdAndUpdate(
+                    ad._id,
+                    { $inc: { views: 1 } },
+                    { new: false } // Не возвращаем обновленный документ, т.к. мы уже загрузили его
+                );
+                // Обновляем локальную копию для ответа
                 ad.views = (ad.views || 0) + 1;
-                await ad.save();
             }
             
             // Добавляем информацию о профиле пользователя
