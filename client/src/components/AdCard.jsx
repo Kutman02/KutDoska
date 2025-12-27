@@ -30,18 +30,20 @@ const AdCard = ({
   author,
   onAuthorClick,
   // Количество просмотров
-  views
+  views,
+  // Категория
+  categoryName
 }) => {
 
   // Функция форматирования цены
   const formatPrice = (p) => {
     if (p === undefined || p === null || p === 0) return "Договорная";
-    // Используем KGS (Кыргызский сом) как валюту
+    // Форматируем число с пробелами и добавляем KGS
     return new Intl.NumberFormat('ru-RU', { 
-      style: 'currency', 
-      currency: 'KGS', 
-      minimumFractionDigits: 0 
-    }).format(p);
+      style: 'decimal',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(p) + ' KGS';
   };
   
   // Простая проверка, чтобы определить, владелец ли пользователь (для отображения кнопок)
@@ -53,30 +55,11 @@ const AdCard = ({
       className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 
                  cursor-pointer flex flex-col relative border border-gray-100"
     >
-      {/* 1. ИЗОБРАЖЕНИЕ (С метками и избранным) */}
+      {/* 1. ИЗОБРАЖЕНИЕ */}
       <div 
         onClick={onCardClick}
-        // Уменьшаем высоту изображения для компактности
         className="w-full h-36 overflow-hidden rounded-t-lg relative bg-gray-100"
       >
-        {/* Кнопка "Избранное" в стиле Lalafo (белая полупрозрачная) */}
-        {/* Используем adId и onToggleFavorite */}
-        <button 
-          onClick={(e) => {
-            e.stopPropagation(); // Останавливаем onCardClick
-            onToggleFavorite && onToggleFavorite(adId);
-          }}
-          className={`absolute top-2 right-2 z-10 p-1 rounded-full shadow transition-colors
-                     ${isFavorite 
-                        ? 'bg-red-500 text-white hover:bg-red-600' // Если в избранном
-                        : 'bg-white/70 text-gray-700/80 hover:bg-white hover:text-red-500' // Если не в избранном
-                     }`}
-          title={isFavorite ? "Удалить из избранного" : "Добавить в избранное"}
-        >
-          {/* Заполняем сердце, если оно в избранном */}
-          <FiHeart className="w-5 h-5" fill={isFavorite ? 'currentColor' : 'none'} />
-        </button>
-
         {image ? (
           <img 
             src={image} 
@@ -90,15 +73,22 @@ const AdCard = ({
         )}
       </div>
 
-      {/* 2. КОНТЕНТ (Уменьшенные отступы p-3) */}
+      {/* 2. КОНТЕНТ */}
       <div className="p-3 flex flex-col grow">
         
-        {/* Цена (крупная, жирная, первая) */}
+        {/* Цена (первая) */}
         <p className="text-base font-extrabold text-gray-900 mb-1">
           {formatPrice(price)}
         </p>
 
-        {/* Описание (Компактное, с ограничением по строкам) */}
+        {/* Категория (вторая) */}
+        {categoryName && (
+          <p className="text-xs text-gray-600 mb-1">
+            {categoryName}
+          </p>
+        )}
+
+        {/* Описание (третья) */}
         <div 
           onClick={onCardClick}
           className="text-sm font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-teal-600 transition"
@@ -106,8 +96,8 @@ const AdCard = ({
           {stripHtml(title || "").substring(0, 100) || ""}
         </div>
 
-        {/* Мета-информация (Локация, Дата, Просмотры - маленьким шрифтом) */}
-        <div className="flex items-center text-xs text-gray-500 mt-auto pt-1">
+        {/* Мета-информация (Локация, Просмотры, Дата) */}
+        <div className="flex items-center text-xs text-gray-500 mt-auto pt-1 mb-2">
             <FiMapPin className="w-3 h-3 mr-1 shrink-0" />
             <span className="truncate">{location || "Не указано"}</span>
             <span className="ml-auto flex items-center gap-1">
@@ -122,31 +112,47 @@ const AdCard = ({
             </span>
         </div>
         
-        {/* Информация об авторе */}
-        {author && (
-          <div 
+        {/* Профиль и избранное (внизу) */}
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+          {/* Картинка профиля (кликабельная) */}
+          {author && (
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                onAuthorClick && onAuthorClick(author._id);
+              }}
+              className="cursor-pointer hover:opacity-80 transition"
+            >
+              {author.profileImageUrl ? (
+                <img 
+                  src={author.profileImageUrl} 
+                  alt={author.displayName || author.name}
+                  className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border border-gray-200">
+                  <FaRegUserCircle className="w-6 h-6 text-gray-400" />
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Кнопка избранного (справа) */}
+          <button 
             onClick={(e) => {
               e.stopPropagation();
-              onAuthorClick && onAuthorClick(author._id);
+              onToggleFavorite && onToggleFavorite(adId);
             }}
-            className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 cursor-pointer hover:bg-gray-50 rounded px-1 -mx-1 transition"
+            className={`p-1.5 rounded-full transition-colors
+                       ${isFavorite 
+                          ? 'bg-red-500 text-white hover:bg-red-600' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-red-500'
+                       }`}
+            title={isFavorite ? "Удалить из избранного" : "Добавить в избранное"}
           >
-            {author.profileImageUrl ? (
-              <img 
-                src={author.profileImageUrl} 
-                alt={author.displayName || author.name}
-                className="w-6 h-6 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                <FaRegUserCircle className="w-5 h-5 text-gray-400" />
-              </div>
-            )}
-            <span className="text-xs text-gray-600 truncate flex-1">
-              {author.displayName || author.name}
-            </span>
-          </div>
-        )}
+            <FiHeart className="w-4 h-4" fill={isFavorite ? 'currentColor' : 'none'} />
+          </button>
+        </div>
         
         {/* Кнопки действий владельца */}
         {isOwner && (

@@ -126,9 +126,8 @@ const AdListSection = ({
                           datePosted={new Date(ad.createdAt).toLocaleDateString('ru-RU')}
                           tags={ad.tags || []}
                           price={ad.price}
-                          // 🚨 ПЕРЕДАЕМ ИСПРАВЛЕННЫЙ АДРЕС ВМЕСТО ad.location 🚨
                           location={fullLocation}
-                          categoryName={ad.category?.name} 
+                          categoryName={ad.subcategory?.name || ad.category?.name || ""} 
                           onCardClick={() => navigate(`/ad-view/${ad._id}`)} 
                           onEdit={isOwner ? () => navigate(`/edit-ad/${ad._id}`) : null}
                           onDelete={isOwner ? () => handleDelete(ad._id) : null} 

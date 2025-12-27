@@ -403,17 +403,37 @@ const AdView = () => {
             </div>
           )}
 
-          {/* Остальной контент страницы (Без изменений) */}
+          {/* Остальной контент страницы */}
           <header className="mb-8 border-b pb-4 border-gray-100">
-            <div 
-              className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-3 line-clamp-3"
-              dangerouslySetInnerHTML={{ __html: ad.content || ad.title || "Объявление" }}
-            />
-            <p className="text-4xl font-extrabold text-teal-600 tracking-wide">
-              {ad.price && ad.price > 0 
-                ? `${ad.price} сом` 
-                : "Договорная"}
-            </p>
+            {/* Цена с форматированием */}
+            <div className="mb-4">
+              <p className="text-2xl font-extrabold text-teal-600 tracking-wide">
+                {ad.price && ad.price > 0 
+                  ? new Intl.NumberFormat('ru-RU', { 
+                      style: 'decimal',
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0
+                    }).format(ad.price) + ' KGS'
+                  : "Договорная"}
+              </p>
+            </div>
+            
+            {/* Категория или подкатегория */}
+            {(ad.category || ad.subcategory) && (
+              <div className="mb-4">
+                <p className="text-lg font-semibold text-gray-700">
+                  {ad.subcategory?.name || ad.category?.name || ""}
+                </p>
+              </div>
+            )}
+            
+            {/* Описание */}
+            <div className="mb-3">
+              <div 
+                className="text-xl sm:text-2xl font-extrabold text-gray-900 line-clamp-3"
+                dangerouslySetInnerHTML={{ __html: ad.content || ad.title || "Объявление" }}
+              />
+            </div>
           </header>
 
           <div className="flex flex-wrap items-center gap-6 sm:gap-10 text-gray-600 mb-8">
