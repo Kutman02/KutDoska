@@ -1,28 +1,29 @@
 // src/components/PrivateRoute.jsx
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
+import { useAppSelector, useAppDispatch } from "../store/hooks";
+import { setUser } from "../store/slices/authSlice";
 
 const PrivateRoute = ({ children }) => {
-  const { user, setUser } = useContext(AuthContext);
+  const { user, token } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
   const [checking, setChecking] = useState(true);
-  const token = localStorage.getItem("token"); // или берем из AuthContext
 
   // Восстанавливаем пользователя из localStorage, если токен есть,
-  // но контекст еще не успел подтянуть данные (частый кейс при F5).
+  // но store еще не успел подтянуть данные (частый кейс при F5).
   useEffect(() => {
     if (!user) {
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
         try {
-          setUser(JSON.parse(storedUser));
+          dispatch(setUser(JSON.parse(storedUser)));
         } catch {
           localStorage.removeItem("user");
         }
       }
     }
     setChecking(false);
-  }, [user, setUser]);
+  }, [user, dispatch]);
 
   // Пока проверяем, показываем короткий лоадер, чтобы не дергать роутер.
   if (checking) {

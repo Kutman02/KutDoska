@@ -1,46 +1,42 @@
 // src/pages/Login.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { loginUser, clearError } from "../store/slices/authSlice";
 import { FiMail, FiLock, FiLogIn, FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [modal, setModal] = useState({ show: false, message: "", success: false });
-  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const dispatch = useAppDispatch();
+  const { loading, error } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (error) {
+      setModal({ show: true, message: error, success: false });
+      setTimeout(() => {
+        setModal({ show: false, message: "", success: false });
+        dispatch(clearError());
+      }, 3000);
+    }
+  }, [error, dispatch]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
-    try {
-      setLoading(true);
-      const res = await fetch("http://localhost:8080/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-      setLoading(false);
-
-      if (!res.ok) throw new Error(data.message || "Ошибка входа. Проверьте данные.");
-
-      login(data);
+    dispatch(clearError());
+    
+    const result = await dispatch(loginUser({ email, password }));
+    
+    if (loginUser.fulfilled.match(result)) {
       setModal({ show: true, message: "Вход успешен! Добро пожаловать.", success: true });
-      localStorage.setItem("token", data.token);
-
       setTimeout(() => {
         setModal({ show: false, message: "", success: false });
         navigate("/dashboard");
       }, 1500);
-    } catch (err) {
-      setModal({ show: true, message: err.message, success: false });
-      setTimeout(() => setModal({ show: false, message: "", success: false }), 3000);
-      setLoading(false);
     }
   };
 

@@ -8,6 +8,9 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
+  resolve: {
+    extensions: ['.js', '.jsx', '.json'],
+  },
   // 🔑 Добавляем объект 'server' для настройки хоста и порта
   server: {
     // 1. Установка host: '0.0.0.0'

@@ -1,5 +1,5 @@
 // src/pages/PublicHome.jsx
-import React, { useContext } from "react"; 
+import React from "react"; 
 import { useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import * as FeatherIcons from "react-icons/fi"; 
@@ -8,14 +8,14 @@ import * as FeatherIcons from "react-icons/fi";
 import Breadcrumb from "../components/Breadcrumb";
 import HomeSearchFilterBar from "../components/HomeSearchFilterBar"; // Новый компонент
 import AdListSection from "../components/AdListSection"; // Новый компонент
-import { AuthContext } from "../context/AuthContext"; 
+import { useAppSelector } from "../store/hooks";
 import useFavorites from "../hooks/useFavorites"; // Существующий хук
 import useHomeAdsLogic from "../hooks/useHomeAdsLogic"; // Новый хук для данных и фильтров
 import useAdActions from "../hooks/useAdActions"; // Новый хук для действий
 
 const PublicHome = () => {
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext); 
+  const { user } = useAppSelector((state) => state.auth); 
   
   // 1. Логика и данные из хука
   const { 

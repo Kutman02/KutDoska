@@ -1,9 +1,9 @@
 // src/pages/Dashboard.jsx (Обновленный файл)
 
-import React, { useState, useContext} from "react";
+import React, { useState } from "react";
 import { Toaster } from "react-hot-toast";
 import { FiGrid, FiUser, FiList } from "react-icons/fi";
-import { AuthContext } from "../context/AuthContext";
+import { useAppSelector } from "../store/hooks";
 import Breadcrumb from "../components/Breadcrumb";
 
 // 💡 Импортируем разделенные компоненты
@@ -15,8 +15,8 @@ const Dashboard = () => {
   // Состояние активной вкладки
   const [activeTab, setActiveTab] = useState('ads'); 
   
-  // Получаем данные пользователя
-  const { user } = useContext(AuthContext); 
+  // Получаем данные пользователя из RTK
+  const { user } = useAppSelector((state) => state.auth); 
   
   // При монтировании, если пользователь - админ, по умолчанию ставим вкладку категорий.
   // Закомментировано, чтобы пользователь всегда видел свои объявления по умолчанию:

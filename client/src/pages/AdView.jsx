@@ -384,7 +384,7 @@ const AdView = () => {
                       <button
                         key={index}
                         onClick={() => setCurrentImageIndex(index)}
-                        className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-all ${
+                        className={`shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-all ${
                           currentImageIndex === index
                             ? "border-teal-500 shadow-md"
                             : "border-gray-200 hover:border-teal-300"

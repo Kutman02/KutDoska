@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { FiLogOut, FiPlusSquare, FiUser, FiHome, FiLogIn, FiHeart, FiMessageSquare, FiLayout } from "react-icons/fi";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAppSelector, useAppDispatch } from "../store/hooks";
+import { logout } from "../store/slices/authSlice";
+import { fetchFavorites } from "../store/slices/favoritesSlice";
 
 // --- Компонент Нижней Навигации для Мобильных Устройств ---
-const BottomNav = ({ isLoggedIn, navigate, favoritesCount = 0 }) => {
+const BottomNav = ({ isLoggedIn, favoritesCount = 0 }) => {
     const location = useLocation();
     
     // Определяем иконки и маршруты для нижней панели
@@ -66,57 +68,37 @@ const BottomNav = ({ isLoggedIn, navigate, favoritesCount = 0 }) => {
 
 const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [favoritesCount, setFavoritesCount] = useState(0);
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
-  const { user, logout } = useAuth();
-  const isLoggedIn = !!user;
+  const { user, token } = useAppSelector((state) => state.auth);
+  const { count: favoritesCount } = useAppSelector((state) => state.favorites);
+  const isLoggedIn = !!user && !!token;
 
-  // Загрузка количества избранных объявлений
-  const fetchFavoritesCount = async () => {
-    if (!isLoggedIn) {
-      setFavoritesCount(0);
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const response = await fetch("http://localhost:8080/api/favorites", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setFavoritesCount(data.length || 0);
-      }
-    } catch (error) {
-      console.error("Ошибка загрузки избранного:", error);
-    }
-  };
-
+  // Загрузка избранного при монтировании и обновлении
   useEffect(() => {
-    fetchFavoritesCount();
-    // Обновляем счетчик каждые 30 секунд
-    const interval = setInterval(fetchFavoritesCount, 30000);
-    
-    // Слушаем события обновления избранного
-    const handleFavoritesUpdate = () => {
-      fetchFavoritesCount();
-    };
-    window.addEventListener('favoritesUpdated', handleFavoritesUpdate);
-    
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('favoritesUpdated', handleFavoritesUpdate);
-    };
-  }, [isLoggedIn]);
+    if (isLoggedIn) {
+      dispatch(fetchFavorites());
+      // Обновляем каждые 30 секунд
+      const interval = setInterval(() => {
+        dispatch(fetchFavorites());
+      }, 30000);
+      
+      // Слушаем события обновления избранного
+      const handleFavoritesUpdate = () => {
+        dispatch(fetchFavorites());
+      };
+      window.addEventListener('favoritesUpdated', handleFavoritesUpdate);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('favoritesUpdated', handleFavoritesUpdate);
+      };
+    }
+  }, [isLoggedIn, dispatch]);
 
   const handleLogout = () => {
-    logout();
+    dispatch(logout());
     setDropdownOpen(false);
     navigate("/login");
   };
@@ -244,7 +226,7 @@ const Navbar = () => {
       </nav>
       
       {/* 2. Нижняя панель навигации (Только для мобильных, md:hidden) */}
-      <BottomNav isLoggedIn={isLoggedIn} navigate={navigate} favoritesCount={favoritesCount} />
+      <BottomNav isLoggedIn={isLoggedIn} favoritesCount={favoritesCount} />
     </>
   );
 };

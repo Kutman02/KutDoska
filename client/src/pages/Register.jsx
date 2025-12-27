@@ -1,6 +1,8 @@
 // src/pages/Register.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom"; 
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { registerUser, clearError } from "../store/slices/authSlice";
 import { FiUser, FiMail, FiLock, FiEdit3, FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
 
 const Register = () => {
@@ -8,42 +10,33 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [modal, setModal] = useState({ show: false, message: "", success: false });
-  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { loading, error } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (error) {
+      setModal({ show: true, message: error, success: false });
+      setTimeout(() => {
+        setModal({ show: false, message: "", success: false });
+        dispatch(clearError());
+      }, 3000);
+    }
+  }, [error, dispatch]);
 
   const handleRegister = async (e) => {
     e.preventDefault();
-
-    try {
-      setLoading(true);
-      const res = await fetch("http://localhost:8080/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Ошибка регистрации. Возможно, пользователь уже существует.");
-      }
-
-      setLoading(false);
+    dispatch(clearError());
+    
+    const result = await dispatch(registerUser({ name, email, password }));
+    
+    if (registerUser.fulfilled.match(result)) {
       setModal({ show: true, message: "Регистрация успешна! Теперь войдите.", success: true });
-
       setTimeout(() => {
         setModal({ show: false, message: "", success: false });
         navigate("/login");
       }, 2000);
-    } catch (err) {
-      setModal({ show: true, message: err.message, success: false });
-      setLoading(false);
-      setTimeout(() => {
-        setModal({ show: false, message: "", success: false });
-      }, 3000);
     }
   };
 

@@ -109,49 +109,138 @@ export const searchAds = async (req, res) => {
             if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
         }
 
-        // Умный поиск: ищем в нескольких полях с учетом частичных совпадений
-        // Разбиваем запрос на слова для более точного поиска
-        const searchWords = searchQuery.split(/\s+/).filter(word => word.length > 0);
+        // Умный поиск с поддержкой опечаток и частичных совпадений
+        // Нормализуем поисковый запрос (убираем лишние символы, приводим к нижнему регистру)
+        const normalizeText = (text) => {
+            if (!text) return '';
+            return text
+                .toLowerCase()
+                .replace(/[^\w\sа-яё]/gi, '') // Убираем спецсимволы, оставляем буквы и цифры
+                .replace(/\s+/g, ' ') // Заменяем множественные пробелы на один
+                .trim();
+        };
         
-        // Создаем массив условий для поиска по каждому слову
-        const searchConditions = searchWords.map(word => ({
+        const normalizedQuery = normalizeText(searchQuery);
+        
+        // Разбиваем запрос на слова
+        const searchWords = normalizedQuery.split(/\s+/).filter(word => word.length > 0);
+        
+        // Создаем умные условия поиска
+        const searchConditions = [];
+        
+        // Экранируем специальные символы для regex
+        const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        // 1. Поиск по полному запросу как подстроке (самый важный - точное совпадение)
+        const escapedFullQuery = escapeRegex(normalizedQuery);
+        searchConditions.push({
             $or: [
-                { content: { $regex: word, $options: 'i' } }, // Поиск в описании (без учета регистра)
-                { tags: { $regex: word, $options: 'i' } }, // Поиск в тегах
-                { location: { $regex: word, $options: 'i' } }, // Поиск в локации
+                { content: { $regex: escapedFullQuery, $options: 'i' } },
+                { tags: { $regex: escapedFullQuery, $options: 'i' } },
+                { location: { $regex: escapedFullQuery, $options: 'i' } },
             ]
-        }));
+        });
+        
+        // 2. Поиск по каждому слову отдельно (для фраз типа "телефон новый")
+        searchWords.forEach(word => {
+            if (word.length >= 2) {
+                const escapedWord = escapeRegex(word);
+                searchConditions.push({
+                    $or: [
+                        { content: { $regex: escapedWord, $options: 'i' } },
+                        { tags: { $regex: escapedWord, $options: 'i' } },
+                        { location: { $regex: escapedWord, $options: 'i' } },
+                    ]
+                });
+            }
+        });
+        
+        // 3. Для длинных слов (>=4 символов) добавляем поиск по значительной части слова
+        // Это позволяет находить "телефондор" по запросу "телефон"
+        searchWords.forEach(word => {
+            if (word.length >= 4) {
+                // Берем первые 60% символов слова (минимум 3 символа)
+                const minLength = Math.max(3, Math.floor(word.length * 0.6));
+                const significantPart = word.substring(0, minLength);
+                const escapedPart = escapeRegex(significantPart);
+                
+                searchConditions.push({
+                    $or: [
+                        { content: { $regex: escapedPart, $options: 'i' } },
+                        { tags: { $regex: escapedPart, $options: 'i' } },
+                    ]
+                });
+            }
+        });
 
-        // Пытаемся использовать текстовый индекс, если он доступен
+        // Используем умный regex поиск (более гибкий, чем текстовый индекс)
+        // Объединяем все условия через $or для максимального охвата
         let ads;
-        try {
-            // Пытаемся использовать текстовый индекс для лучшей производительности
+        
+        if (searchConditions.length > 0) {
+            // Используем $or для поиска по любому из условий (более гибкий поиск)
             ads = await Ad.find({
                 ...filter,
-                $text: { $search: searchQuery }
-            })
-            .populate("user", "name email phone")
-            .populate("category", "name icon")
-            .populate("subcategory", "name")
-            .populate("locationId", "name")
-            .sort({ score: { $meta: "textScore" } })
-            .limit(50)
-            .exec();
-        } catch (textIndexError) {
-            // Если текстовый индекс не работает, используем regex поиск
-            ads = await Ad.find({
-                ...filter,
-                $and: searchConditions.length > 0 ? searchConditions : [
-                    { content: { $regex: searchQuery, $options: 'i' } }
-                ]
+                $or: searchConditions
             })
             .populate("user", "name email phone")
             .populate("category", "name icon")
             .populate("subcategory", "name")
             .populate("locationId", "name")
             .sort({ createdAt: -1 })
-            .limit(50)
+            .limit(100) // Увеличиваем лимит для лучшего покрытия
             .exec();
+            
+            // Дополнительная фильтрация и ранжирование результатов на стороне приложения
+            // Сортируем по релевантности: точные совпадения выше
+            ads = ads.map(ad => {
+                let relevanceScore = 0;
+                const adContent = normalizeText(ad.content || '');
+                const adTags = (ad.tags || []).map(tag => normalizeText(tag)).join(' ');
+                const adLocation = normalizeText(ad.location || '');
+                const combinedText = `${adContent} ${adTags} ${adLocation}`;
+                
+                // Точное совпадение всего запроса
+                if (combinedText.includes(normalizedQuery)) {
+                    relevanceScore += 100;
+                }
+                
+                // Совпадение всех слов
+                const allWordsMatch = searchWords.every(word => combinedText.includes(word));
+                if (allWordsMatch) {
+                    relevanceScore += 50;
+                }
+                
+                // Совпадение отдельных слов
+                searchWords.forEach(word => {
+                    if (combinedText.includes(word)) {
+                        relevanceScore += 10;
+                    }
+                });
+                
+                return { ...ad.toObject(), relevanceScore };
+            });
+            
+            // Сортируем по релевантности (убывание), затем по дате
+            ads.sort((a, b) => {
+                if (b.relevanceScore !== a.relevanceScore) {
+                    return b.relevanceScore - a.relevanceScore;
+                }
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            });
+            
+            // Убираем поле relevanceScore и ограничиваем результат
+            ads = ads.slice(0, 50).map(({ relevanceScore, ...ad }) => ad);
+        } else {
+            // Fallback: если нет условий поиска
+            ads = await Ad.find(filter)
+                .populate("user", "name email phone")
+                .populate("category", "name icon")
+                .populate("subcategory", "name")
+                .populate("locationId", "name")
+                .sort({ createdAt: -1 })
+                .limit(50)
+                .exec();
         }
 
         // Добавляем информацию о профиле для каждого объявления

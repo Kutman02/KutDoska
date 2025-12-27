@@ -91,7 +91,7 @@ const AdCard = ({
       </div>
 
       {/* 2. КОНТЕНТ (Уменьшенные отступы p-3) */}
-      <div className="p-3 flex flex-col flex-grow">
+      <div className="p-3 flex flex-col grow">
         
         {/* Цена (крупная, жирная, первая) */}
         <p className="text-base font-extrabold text-gray-900 mb-1">
@@ -108,7 +108,7 @@ const AdCard = ({
 
         {/* Мета-информация (Локация, Дата, Просмотры - маленьким шрифтом) */}
         <div className="flex items-center text-xs text-gray-500 mt-auto pt-1">
-            <FiMapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+            <FiMapPin className="w-3 h-3 mr-1 shrink-0" />
             <span className="truncate">{location || "Не указано"}</span>
             <span className="ml-auto flex items-center gap-1">
               {views !== undefined && views > 0 && (

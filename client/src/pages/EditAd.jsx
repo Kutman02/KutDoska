@@ -4,8 +4,11 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import toast, { Toaster } from "react-hot-toast";
-import { FiSave, FiTag, FiImage, FiX, FiDollarSign, FiMapPin, FiMenu, FiPhone } from "react-icons/fi";
+import { FiSave, FiTag, FiImage, FiX, FiDollarSign, FiMapPin, FiMenu, FiPhone, FiBriefcase } from "react-icons/fi";
 import Breadcrumb from "../components/Breadcrumb";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { fetchAdById, updateAd } from "../store/slices/adsSlice";
+import { fetchCategories, fetchSubcategories } from "../store/slices/categoriesSlice";
 
 // Классы для стилизации кнопок Tiptap (Обновлено для Soft UI)
 const TiptapButtonClass = (isActive) => 
@@ -71,19 +74,21 @@ const EditAd = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const dispatch = useAppDispatch();
+  const { currentAd, loading: adsLoading } = useAppSelector((state) => state.ads);
+  const { categories, subcategories } = useAppSelector((state) => state.categories);
+
   const [price, setPrice] = useState("");
   const [location, setLocation] = useState("");
   const [phone, setPhone] = useState("");
   const [hidePhone, setHidePhone] = useState(false);
   const [tags, setTags] = useState("");
-  const [images, setImages] = useState([]); // Массив для нескольких изображений
+  const [images, setImages] = useState([]);
   const [activeTab, setActiveTab] = useState("content"); 
   const [loading, setLoading] = useState(false);
   
   // Категории и локации
-  const [categories, setCategories] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
-  const [subcategories, setSubcategories] = useState([]);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
   const [locations, setLocations] = useState([]);
   const [selectedCityId, setSelectedCityId] = useState("");
@@ -104,40 +109,52 @@ const EditAd = () => {
     },
   });
 
-  // Fetch existing ad
+  // Загрузка категорий и локаций
   useEffect(() => {
-    const fetchAd = async () => {
-      setLoading(true);
+    dispatch(fetchCategories());
+    const fetchLocations = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`http://localhost:8080/api/ads/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!res.ok) throw new Error("Failed to fetch advertisement");
-
-        const data = await res.json();
-        // Title больше не используется в форме
-        setPrice(data.price?.toString() || "");
-        setLocation(data.location || "");
-        setPhone(data.phone || "");
-        setHidePhone(data.hidePhone || false);
-        setTags(data.tags?.join(", ") || "");
-        setImages(data.images && data.images.length > 0 ? data.images : (data.imageUrl ? [data.imageUrl] : []));
-        setSelectedCategoryId(data.category?._id || data.category || "");
-        setSelectedSubcategoryId(data.subcategory?._id || data.subcategory || "");
-        setSelectedCityId(data.locationId?._id || data.locationId || "");
-        editor?.commands.setContent(data.content || "");
-      } catch (err) {
-        toast.error("Не удалось загрузить объявление для редактирования");
-        console.error("Fetch error:", err.message);
-      } finally {
-        setLoading(false);
+        const response = await fetch("http://localhost:8080/api/locations");
+        if (response.ok) {
+          const data = await response.json();
+          setLocations(data);
+        }
+      } catch (error) {
+        console.error("Ошибка загрузки локаций:", error);
       }
     };
+    fetchLocations();
+  }, [dispatch]);
 
-    if (editor && id) fetchAd();
-  }, [editor, id]);
+  // Загрузка подкатегорий при изменении категории
+  useEffect(() => {
+    if (selectedCategoryId) {
+      dispatch(fetchSubcategories(selectedCategoryId));
+    }
+  }, [selectedCategoryId, dispatch]);
+
+  // Fetch existing ad
+  useEffect(() => {
+    if (editor && id) {
+      dispatch(fetchAdById(id));
+    }
+  }, [editor, id, dispatch]);
+
+  // Обновление формы при загрузке объявления
+  useEffect(() => {
+    if (currentAd) {
+      setPrice(currentAd.price?.toString() || "");
+      setLocation(currentAd.location || "");
+      setPhone(currentAd.phone || "");
+      setHidePhone(currentAd.hidePhone || false);
+      setTags(currentAd.tags?.join(", ") || "");
+      setImages(currentAd.images && currentAd.images.length > 0 ? currentAd.images : (currentAd.imageUrl ? [currentAd.imageUrl] : []));
+      setSelectedCategoryId(currentAd.category?._id || currentAd.category || "");
+      setSelectedSubcategoryId(currentAd.subcategory?._id || currentAd.subcategory || "");
+      setSelectedCityId(currentAd.locationId?._id || currentAd.locationId || "");
+      editor?.commands.setContent(currentAd.content || "");
+    }
+  }, [currentAd, editor]);
 
   // Handle image upload
   const handleImageUpload = async (selectedFiles) => {
@@ -201,48 +218,47 @@ const EditAd = () => {
         return;
     }
 
+    if (!selectedCategoryId) {
+        toast.error("Пожалуйста, выберите категорию.");
+        return;
+    }
+
+    if (!selectedCityId) {
+        toast.error("Пожалуйста, выберите город.");
+        return;
+    }
+
     const content = editor.getHTML();
     const tagArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag);
-    // Обработка цены: если 0 или не указана, отправляем 0 (будет "Договорная")
     const finalPrice = price && parseFloat(price) > 0 ? parseFloat(price) : 0;
-    // Генерируем title из content для совместимости
     const generatedTitle = content.trim().substring(0, 100) || "Объявление";
 
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
+    setLoading(true);
+    const result = await dispatch(updateAd({
+      id,
+      adData: {
+        title: generatedTitle,
+        content, 
+        tags: tagArray, 
+        images: images.length > 0 ? images : [],
+        imageUrl: images.length > 0 ? images[0] : "",
+        price: finalPrice,
+        location,
+        phone,
+        hidePhone,
+        locationId: selectedCityId,
+        category: selectedCategoryId,
+        subcategory: selectedSubcategoryId || null,
+      }
+    }));
 
-      const res = await fetch(`http://localhost:8080/api/ads/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ 
-            title: generatedTitle,
-            content, 
-            tags: tagArray, 
-            images: images.length > 0 ? images : [],
-            imageUrl: images.length > 0 ? images[0] : "",
-            price: finalPrice,
-            location,
-            phone,
-            hidePhone,
-            locationId: selectedCityId,
-            category: selectedCategoryId,
-            subcategory: selectedSubcategoryId || null,
-        }),
-      });
+    setLoading(false);
 
-      if (!res.ok) throw new Error("Failed to update advertisement");
-
+    if (updateAd.fulfilled.match(result)) {
       toast.success("Объявление успешно обновлено!");
       setTimeout(() => navigate("/dashboard"), 1500);
-    } catch (err) {
-      toast.error("Ошибка обновления объявления");
-      console.error("Update error:", err.message);
-    } finally {
-        setLoading(false);
+    } else {
+      toast.error(result.payload || "Ошибка обновления объявления");
     }
   };
 
@@ -292,6 +308,7 @@ const EditAd = () => {
 
         {/* Phone Input */}
         <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Номер телефона <span className="text-red-500">*</span></label>
             <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl shadow-inner">
                 <FiPhone className="w-5 h-5 text-teal-600" />
                 <input
@@ -315,6 +332,67 @@ const EditAd = () => {
                 Скрыть номер телефона
               </label>
             </div>
+        </div>
+
+        {/* Categories and Locations */}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Категория <span className="text-red-500">*</span></label>
+            <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
+              <FiBriefcase className="w-5 h-5 text-teal-500" />
+              <select 
+                value={selectedCategoryId} 
+                onChange={(e) => {
+                  setSelectedCategoryId(e.target.value);
+                  setSelectedSubcategoryId("");
+                }} 
+                className="w-full bg-transparent outline-none cursor-pointer text-gray-700" 
+                required
+              >
+                <option value="">Выберите категорию</option>
+                {categories.map(cat => (
+                  <option key={cat._id} value={cat._id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {selectedCategoryId && subcategories.length > 0 && (
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Подкатегория</label>
+              <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
+                <FiBriefcase className="w-5 h-5 text-teal-500" />
+                <select 
+                  value={selectedSubcategoryId} 
+                  onChange={(e) => setSelectedSubcategoryId(e.target.value)} 
+                  className="w-full bg-transparent outline-none cursor-pointer text-gray-700"
+                >
+                  <option value="">Выберите подкатегорию</option>
+                  {subcategories.map(sub => (
+                    <option key={sub._id} value={sub._id}>{sub.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Город <span className="text-red-500">*</span></label>
+            <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
+              <FiMapPin className="w-5 h-5 text-teal-500" />
+              <select 
+                value={selectedCityId} 
+                onChange={(e) => setSelectedCityId(e.target.value)} 
+                className="w-full bg-transparent outline-none cursor-pointer text-gray-700" 
+                required
+              >
+                <option value="">Выберите город</option>
+                {locations.map(city => (
+                  <option key={city._id} value={city._id}>{city.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Image Upload/Preview */}
@@ -368,7 +446,7 @@ const EditAd = () => {
     </div>
   );
 
-  if (!editor || loading) {
+  if (!editor || loading || adsLoading) {
     return (
         <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50">
             <div className="flex items-center text-lg text-teal-600">

@@ -1,62 +1,39 @@
 // src/pages/Favorites.jsx
 
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import AdCard from "../components/AdCard";
 import { FiHeart, FiLoader, FiBookOpen } from "react-icons/fi";
-import useFavorites from "../hooks/useFavorites"; // Импортируем наш хук
-import { AuthContext } from "../context/AuthContext"; 
+import { useAppSelector, useAppDispatch } from "../store/hooks";
+import { fetchFavorites } from "../store/slices/favoritesSlice";
 
 const Favorites = () => {
-  const [favoriteAds, setFavoriteAds] = useState([]);
-  const [loadingContent, setLoadingContent] = useState(true);
-  const { user } = useContext(AuthContext); 
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
+  const { favorites: favoriteAds, loading: loadingContent } = useAppSelector((state) => state.favorites);
+  const [localFavoriteAds, setLocalFavoriteAds] = useState([]); 
   const navigate = useNavigate();
   
   // Используем хук, чтобы получить управление избранным
   const { isFavorite, toggleFavorite, refetchFavorites } = useFavorites(); 
 
-  // Функция для получения полной информации об избранных объявлениях
-  const fetchFavoriteAdsContent = async () => {
-    if (!user) {
-        setLoadingContent(false);
-        return;
+  useEffect(() => {
+    if (user) {
+      dispatch(fetchFavorites());
     }
-    
-    setLoadingContent(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:8080/api/favorites", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) throw new Error("Не удалось загрузить избранное");
-
-      const data = await response.json();
-      setFavoriteAds(data); 
-
-    } catch (err) {
-      console.error(err.message);
-      toast.error("Ошибка при загрузке избранного.");
-      setFavoriteAds([]); // Очищаем, если ошибка
-    } finally {
-      setLoadingContent(false);
-    }
-  };
+  }, [user, dispatch]);
 
   useEffect(() => {
-    fetchFavoriteAdsContent();
-  }, [user, refetchFavorites]); // Зависимость от user и refetchFavorites из хука
+    setLocalFavoriteAds(favoriteAds);
+  }, [favoriteAds]);
 
   // Обработчик удаления, который обновляет локальное состояние
   const handleToggleFavorite = async (adId) => {
-    await toggleFavorite(adId);
-    
     // Обновляем список на странице после удаления
-    setFavoriteAds(prev => prev.filter(ad => ad._id !== adId));
+    setLocalFavoriteAds(prev => prev.filter(ad => ad._id !== adId));
+    // Обновляем избранное в store
+    dispatch(fetchFavorites());
   };
 
 
@@ -70,7 +47,7 @@ const Favorites = () => {
     );
   }
   
-  if (favoriteAds.length === 0) {
+  if (localFavoriteAds.length === 0 && !loadingContent) {
     return (
         <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center text-center bg-gray-50 p-8">
             <FiHeart className="w-16 h-16 text-teal-400 mb-4 shadow-md rounded-full p-2 bg-white" />
@@ -100,11 +77,11 @@ const Favorites = () => {
       <div className="max-w-screen-xl mx-auto py-8">
         <h2 className="text-3xl font-extrabold text-gray-900 mb-8 border-b pb-3 flex items-center gap-3">
           <FiHeart className="w-7 h-7 text-red-500" fill="currentColor" />
-          Избранные Объявления ({favoriteAds.length})
+          Избранные Объявления ({localFavoriteAds.length})
         </h2>
         
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-          {favoriteAds.map((ad) => {
+          {localFavoriteAds.map((ad) => {
             const fullLocation = [
               ad.locationId?.name || null,
               ad.location || null
