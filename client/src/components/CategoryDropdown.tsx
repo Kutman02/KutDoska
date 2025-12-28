@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as FeatherIcons from "react-icons/fi";
+import type { CategoryDropdownProps } from '../types/component.types';
+import type { Category } from '../types/category.types';
+import type { ComponentType } from 'react';
 
 // Хелпер для иконок
-const getIconComponent = (iconName) => {
-    const IconComponentName = `Fi${iconName}`; 
-    const IconComponent = FeatherIcons[IconComponentName]; 
+const getIconComponent = (iconName: string): ComponentType<{ className?: string }> => {
+    const IconComponentName = `Fi${iconName}` as keyof typeof FeatherIcons; 
+    const IconComponent = FeatherIcons[IconComponentName] as ComponentType<{ className?: string }> | undefined; 
     return IconComponent || FeatherIcons.FiZap; 
 }
 
-const CategoryDropdown = ({ categories, onCategorySelect, onSubcategorySelect }) => {
+const CategoryDropdown: React.FC<CategoryDropdownProps> = ({ categories, onCategorySelect, onSubcategorySelect }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [hoveredCategory, setHoveredCategory] = useState(null);
+    const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
     
-    const dropdownRef = useRef(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     const toggleDropdown = () => setIsOpen(prev => !prev);
 
@@ -25,8 +28,8 @@ const CategoryDropdown = ({ categories, onCategorySelect, onSubcategorySelect })
 
     // Закрытие при клике снаружи
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && event.target instanceof Node && !dropdownRef.current.contains(event.target)) {
                 setIsOpen(false);
             }
         };
@@ -35,20 +38,20 @@ const CategoryDropdown = ({ categories, onCategorySelect, onSubcategorySelect })
     }, []);
 
     // 1. Обработчик клика по ГЛАВНОЙ категории (вызывает фильтрацию и закрывает меню)
-    const handleCategoryClick = (categoryId) => {
+    const handleCategoryClick = (categoryId: string) => {
         onCategorySelect(categoryId, { isDropdownSelection: true });
         onSubcategorySelect(null); // Сбрасываем подкатегорию, чтобы показать ВСЕ в этой категории
         setIsOpen(false);
     };
 
     // 2. Обработчик клика по ПОДКАТЕГОРИИ
-    const handleSubcategoryClick = (categoryId, subcategoryId) => {
+    const handleSubcategoryClick = (categoryId: string, subcategoryId: string) => {
         onCategorySelect(categoryId, { isDropdownSelection: true });
         onSubcategorySelect(subcategoryId);
         setIsOpen(false);
     };
 
-    const activeCategoryData = categories.find(c => c._id === hoveredCategory);
+    const activeCategoryData = categories.find((c: Category) => c._id === hoveredCategory);
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -80,7 +83,7 @@ const CategoryDropdown = ({ categories, onCategorySelect, onSubcategorySelect })
                     {/* ЛЕВАЯ КОЛОНКА: Главные категории - адаптивная */}
                     <div className="w-full md:w-1/3 bg-gray-50 dark:bg-slate-700 overflow-y-auto border-r-0 md:border-r border-b md:border-b-0 border-gray-200 dark:border-slate-600 custom-scrollbar">
                         <ul className="py-2">
-                            {categories.map((cat) => {
+                            {categories.map((cat: Category) => {
                                 const Icon = getIconComponent(cat.icon);
                                 const isActive = hoveredCategory === cat._id;
 
@@ -135,9 +138,9 @@ const CategoryDropdown = ({ categories, onCategorySelect, onSubcategorySelect })
                                     </button>
                                 </div>
 
-                                {activeCategoryData.subcategories && activeCategoryData.subcategories.length > 0 ? (
+                                {activeCategoryData.subcategories && Array.isArray(activeCategoryData.subcategories) && activeCategoryData.subcategories.length > 0 ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 md:gap-x-8 gap-y-2 md:gap-y-3">
-                                        {activeCategoryData.subcategories.map((sub) => (
+                                        {(activeCategoryData.subcategories as Category[]).map((sub: Category) => (
                                             <button
                                                 key={sub._id}
                                                 onClick={(e) => {

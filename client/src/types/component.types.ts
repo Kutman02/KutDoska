@@ -27,12 +27,14 @@ export interface FilterPanelProps {
 }
 
 // CategoryDropdown
+export interface CategoryDropdownSelectOptions {
+  isDropdownSelection?: boolean;
+}
+
 export interface CategoryDropdownProps {
   categories: Category[];
-  selectedCategory?: Category | null;
-  selectedSubcategory?: Category | null;
-  onCategorySelect: (category: Category | null) => void;
-  onSubcategorySelect: (subcategory: Category | null) => void;
+  onCategorySelect: (categoryId: string | null, options?: CategoryDropdownSelectOptions) => void;
+  onSubcategorySelect: (subcategoryId: string | null) => void;
 }
 
 // AdCard

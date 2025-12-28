@@ -54,8 +54,34 @@ const HomeSearchFilterBar = ({
             <div className="w-full md:w-auto md:min-w-[200px] lg:min-w-[250px] relative">
                 <CategoryDropdown
                     categories={categories}
-                    onCategorySelect={onCategorySelect}
-                    onSubcategorySelect={onSubcategorySelect}
+                    onCategorySelect={(categoryId) => {
+                        // Адаптер: преобразуем categoryId в Category | null
+                        if (categoryId === null) {
+                            onCategorySelect(null);
+                        } else {
+                            const category = categories.find((c: Category) => c._id === categoryId);
+                            onCategorySelect(category || null);
+                        }
+                    }}
+                    onSubcategorySelect={(subcategoryId) => {
+                        // Адаптер: преобразуем subcategoryId в Category | null
+                        if (subcategoryId === null) {
+                            onSubcategorySelect(null);
+                        } else {
+                            // Находим подкатегорию во всех категориях
+                            let subcategory: Category | null = null;
+                            for (const cat of categories) {
+                                if (cat.subcategories && Array.isArray(cat.subcategories)) {
+                                    const found = (cat.subcategories as Category[]).find((s: Category) => s._id === subcategoryId);
+                                    if (found) {
+                                        subcategory = found;
+                                        break;
+                                    }
+                                }
+                            }
+                            onSubcategorySelect(subcategory);
+                        }
+                    }}
                 />
             </div>
 
