@@ -116,7 +116,7 @@ const Dashboard: React.FC = () => {
 
               {/* Контент вкладок */}
               <div className="w-full">
-                {activeTab === 'ads' && <MyAds user={user || undefined} />}
+                {activeTab === 'ads' && <MyAds />}
                 {activeTab === 'profile' && <ProfileSettings user={user || undefined} />}
                 
                 {/* 💡 УСЛОВНЫЙ РЕНДЕРИНГ КОМПОНЕНТА АДМИНА */}

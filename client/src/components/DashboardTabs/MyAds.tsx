@@ -8,7 +8,6 @@ import { FiGrid, FiArrowLeft, FiArrowRight, FiPlus } from "react-icons/fi";
 import { useAppDispatch } from "../../store/hooks";
 import { openLoginModal } from "../../store/slices/authSlice";
 import type { Ad } from "../../types/ad.types";
-import type { User } from "../../types/user.types";
 
 const ADS_PER_PAGE = 10; 
 
@@ -25,11 +24,7 @@ const stripHtml = (html: unknown): string => {
     return tmp.textContent || tmp.innerText || text;
 };
 
-interface MyAdsProps {
-  user?: User;
-}
-
-const MyAds: React.FC<MyAdsProps> = ({ user }) => {
+const MyAds: React.FC = () => {
   const [ads, setAds] = useState<Ad[]>([]);
   
   const [loading, setLoading] = useState(true);

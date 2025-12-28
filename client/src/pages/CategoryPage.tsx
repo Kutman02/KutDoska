@@ -15,7 +15,7 @@ import type { Ad } from "../types/ad.types";
 import type { Category } from "../types/category.types";
 import type { Location } from "../types/location.types";
 import type { PageFilters } from "../types/page.types";
-import type { BreadcrumbItem } from "../types/component.types";
+import type { AdFilters } from "../types/ad.types";
 
 const CategoryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -80,7 +80,12 @@ const CategoryPage: React.FC = () => {
         }
         const category = await response.json();
         setSelectedCategory(category._id);
-        setSubcategories(category.subcategories || []);
+        // Преобразуем subcategories в Category[], если они есть
+        const subs = category.subcategories || [];
+        const typedSubs = Array.isArray(subs) && subs.length > 0 && typeof subs[0] === 'object' 
+          ? subs as Category[] 
+          : [];
+        setSubcategories(typedSubs);
       } catch (error) {
         console.error("Ошибка:", error);
         navigate("/");
@@ -92,8 +97,17 @@ const CategoryPage: React.FC = () => {
   // Синхронизация подкатегорий
   useEffect(() => {
     if (selectedCategory) {
-      const currentCategory = categories.find(c => c._id === selectedCategory);
-      setSubcategories(currentCategory?.subcategories || []);
+      const currentCategory = categories.find((c: Category) => c._id === selectedCategory);
+      if (currentCategory?.subcategories) {
+        // Преобразуем subcategories в Category[]
+        const subs = currentCategory.subcategories;
+        const typedSubs = Array.isArray(subs) && subs.length > 0 && typeof subs[0] === 'object' 
+          ? subs as Category[] 
+          : [];
+        setSubcategories(typedSubs);
+      } else {
+        setSubcategories([]);
+      }
     } else {
       setSubcategories([]);
       setSelectedSubcategory(null);
@@ -181,8 +195,13 @@ const CategoryPage: React.FC = () => {
     setSelectedSubcategory(subcategoryId);
   };
 
-  const handleApplyFilters = (newFilters: PageFilters) => {
-    setFilters(newFilters);
+  const handleApplyFilters = (newFilters: AdFilters) => {
+    // Преобразуем AdFilters в PageFilters
+    setFilters({
+      city: newFilters.location || '',
+      priceFrom: newFilters.priceFrom !== undefined ? String(newFilters.priceFrom) : '',
+      priceTo: newFilters.priceTo !== undefined ? String(newFilters.priceTo) : '',
+    });
   };
 
   const handleClearFilters = () => {
@@ -218,14 +237,20 @@ const CategoryPage: React.FC = () => {
     <>
       <Toaster position="top-right" />
       <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-8 bg-gray-50">
-        <div className="max-w-screen-xl mx-auto py-8">
+        <div className="max-w-7xl mx-auto py-8">
           <Breadcrumb items={breadcrumbItems} showHomeIcon={true} />
 
           <div className="flex items-center justify-between mb-4">
             <HomeSearchFilterBar
               categories={categories}
-              onCategorySelect={handleCategorySelect}
-              onSubcategorySelect={handleSubcategorySelect}
+              onCategorySelect={(category) => {
+                // Адаптер: преобразуем Category | null в string | null
+                handleCategorySelect(category ? category._id : null);
+              }}
+              onSubcategorySelect={(subcategory) => {
+                // Адаптер: преобразуем Category | null в string | null
+                handleSubcategorySelect(subcategory ? subcategory._id : null);
+              }}
               currentCategoryName={currentCategoryName}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -234,7 +259,11 @@ const CategoryPage: React.FC = () => {
               locations={locations}
               onApplyFilters={handleApplyFilters}
               onClearFilters={handleClearFilters}
-              initialFilters={filters}
+              initialFilters={{
+                location: filters.city || undefined,
+                priceFrom: filters.priceFrom ? Number(filters.priceFrom) : undefined,
+                priceTo: filters.priceTo ? Number(filters.priceTo) : undefined,
+              }}
             />
           </div>
 
@@ -251,7 +280,10 @@ const CategoryPage: React.FC = () => {
             selectedSubcategory={selectedSubcategory}
             categories={categories}
             subcategories={subcategories}
-            handleCategorySelect={handleCategorySelect}
+            handleCategorySelect={(category) => {
+              // Адаптер: преобразуем Category | null в string | null
+              handleCategorySelect(category ? category._id : null);
+            }}
             user={user}
             navigate={navigate}
             isFavorite={isFavorite}

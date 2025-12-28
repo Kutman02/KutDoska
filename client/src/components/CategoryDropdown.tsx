@@ -63,10 +63,10 @@ const CategoryDropdown: React.FC<CategoryDropdownProps> = ({ categories, onCateg
                            transition-colors touch-manipulation active:scale-95
                            ${isOpen ? 'bg-teal-800 dark:bg-teal-700' : 'bg-teal-600 dark:bg-teal-500 hover:bg-teal-700 dark:hover:bg-teal-600 active:bg-teal-800 dark:active:bg-teal-700'}`}
             >
-                <FeatherIcons.FiGrid className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 flex-shrink-0" />
+                <FeatherIcons.FiGrid className="w-4 h-4 md:w-5 md:h-5 mr-2 md:mr-3 shrink-0" />
                 <span className="truncate">Все категории</span>
                 <FeatherIcons.FiChevronDown 
-                    className={`w-4 h-4 ml-auto flex-shrink-0 transition-transform duration-300 ${isOpen ? 'transform rotate-180' : ''}`} 
+                    className={`w-4 h-4 ml-auto shrink-0 transition-transform duration-300 ${isOpen ? 'transform rotate-180' : ''}`} 
                 />
             </button>
 
@@ -107,10 +107,10 @@ const CategoryDropdown: React.FC<CategoryDropdownProps> = ({ categories, onCateg
                                             }`}
                                     >
                                         <div className="flex items-center gap-2 md:gap-3 pointer-events-none"> 
-                                            <Icon className={`w-4 h-4 md:w-5 md:h-5 flex-shrink-0 ${isActive ? 'text-teal-600' : 'text-gray-400'}`} />
+                                            <Icon className={`w-4 h-4 md:w-5 md:h-5 shrink-0 ${isActive ? 'text-teal-600' : 'text-gray-400'}`} />
                                             <span className="text-sm md:text-base">{cat.name}</span>
                                         </div>
-                                        {isActive && <FeatherIcons.FiChevronRight className="w-4 h-4 flex-shrink-0" />}
+                                        {isActive && <FeatherIcons.FiChevronRight className="w-4 h-4 shrink-0" />}
                                     </li>
                                 );
                             })}
