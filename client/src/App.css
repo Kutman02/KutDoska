@@ -3,7 +3,19 @@ body {
   padding: 0;
   /* Улучшение touch-взаимодействия на мобильных */
   -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Разрешаем выделение текста везде */
+* {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Исключения: кнопки и интерактивные элементы */
+button, a, [role="button"], [tabindex] {
   -webkit-user-select: none;
   user-select: none;
 }

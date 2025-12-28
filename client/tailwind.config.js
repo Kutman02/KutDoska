@@ -5,8 +5,21 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}", // <-- Убедитесь, что пути верны
   ],
+  darkMode: 'class', // Включаем dark mode через класс
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        // Кастомные цвета для темной темы
+        dark: {
+          bg: '#0f172a', // slate-900
+          surface: '#1e293b', // slate-800
+          card: '#334155', // slate-700
+          border: '#475569', // slate-600
+          text: '#f1f5f9', // slate-100
+          'text-muted': '#cbd5e1', // slate-300
+        },
+      },
+    },
   },
   plugins: [],
 }
