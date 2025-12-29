@@ -203,3 +203,73 @@ export const getUserAds = async (req, res) => {
     res.status(500).json({ message: "Ошибка сервера при получении объявлений пользователя" });
   }
 };
+
+// 7. Получить всех пользователей (только для админа)
+/**
+ * @desc Получить список всех пользователей
+ * @route GET /api/auth/users
+ * @access Admin only
+ */
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({})
+      .select("name email role phone createdAt")
+      .sort({ createdAt: -1 })
+      .exec();
+
+    res.json(users);
+  } catch (err) {
+    console.error("Ошибка получения списка пользователей:", err);
+    res.status(500).json({ message: "Ошибка сервера при получении списка пользователей" });
+  }
+};
+
+// 8. Удалить пользователя (только для админа)
+/**
+ * @desc Удалить пользователя
+ * @route DELETE /api/auth/users/:id
+ * @access Admin only
+ */
+export const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Неверный формат ID пользователя." });
+    }
+
+    // Нельзя удалить самого себя
+    if (req.user._id.toString() === id) {
+      return res.status(400).json({ message: "Вы не можете удалить свой собственный аккаунт." });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "Пользователь не найден." });
+    }
+
+    // Нельзя удалить другого админа
+    if (user.role === "admin") {
+      return res.status(403).json({ message: "Нельзя удалить администратора." });
+    }
+
+    // Проверяем наличие активных объявлений
+    const adCount = await Ad.countDocuments({ user: id, status: { $ne: 'Sold' } });
+    if (adCount > 0) {
+      return res.status(400).json({ 
+        message: `Невозможно удалить пользователя: у него ${adCount} активных объявлений. Сначала удалите или перенесите их.` 
+      });
+    }
+
+    // Удаляем пользователя
+    await User.findByIdAndDelete(id);
+    
+    // Также удаляем настройки профиля, если они есть
+    await ProfileSettings.findOneAndDelete({ user: id });
+
+    res.json({ message: "Пользователь успешно удален" });
+  } catch (err) {
+    console.error("Ошибка удаления пользователя:", err);
+    res.status(500).json({ message: "Ошибка сервера при удалении пользователя" });
+  }
+};

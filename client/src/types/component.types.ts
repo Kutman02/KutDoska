@@ -47,8 +47,8 @@ export interface AdCardProps {
 // ImageUploader
 export interface ImageUploaderProps {
   images: string[];
-  onImagesChange: (images: string[]) => void;
-  maxImages?: number;
+  onUpload: (files: FileList | null) => void;
+  onRemove: (index: number) => void;
 }
 
 // TabButton

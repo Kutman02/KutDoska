@@ -1,17 +1,37 @@
-// src/hooks/useHomeAdsLogic.js
-import { useState, useEffect } from "react";
+// src/hooks/useHomeAdsLogic.ts
+import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
+import type { Ad } from "../types/ad.types";
+import type { Category } from "../types/category.types";
+
+interface CategorySelectOptions {
+    isDropdownSelection?: boolean;
+}
+
+interface UseHomeAdsLogicReturn {
+    publicAds: Ad[];
+    setPublicAds: React.Dispatch<React.SetStateAction<Ad[]>>;
+    categories: Category[];
+    subcategories: Category[];
+    selectedCategory: string | null;
+    selectedSubcategory: string | null;
+    loading: boolean;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
+    handleCategorySelect: (categoryId: string | null, options?: CategorySelectOptions) => void;
+    handleSubcategorySelect: (subcategoryId: string | null) => void;
+}
 
 /**
  * Хук для управления состоянием, загрузкой категорий, объявлений и логикой фильтрации.
  */
-const useHomeAdsLogic = () => {
-  const [publicAds, setPublicAds] = useState([]);
-  const [categories, setCategories] = useState([]); 
+const useHomeAdsLogic = (): UseHomeAdsLogicReturn => {
+  const [publicAds, setPublicAds] = useState<Ad[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]); 
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
-  const [subcategories, setSubcategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [subcategories, setSubcategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState(""); 
 
   // 1. Загрузка категорий (только один раз при монтировании)
@@ -33,8 +53,17 @@ const useHomeAdsLogic = () => {
   // 2. Синхронизация подкатегорий при изменении категории
   useEffect(() => {
     if (selectedCategory) {
-        const currentCategory = categories.find(c => c._id === selectedCategory);
-        setSubcategories(currentCategory?.subcategories || []);
+        const currentCategory = categories.find((c: Category) => c._id === selectedCategory);
+        if (currentCategory?.subcategories) {
+            // Преобразуем subcategories в Category[]
+            const subs = currentCategory.subcategories;
+            const typedSubs = Array.isArray(subs) && subs.length > 0 && typeof subs[0] === 'object' 
+                ? subs as Category[] 
+                : [];
+            setSubcategories(typedSubs);
+        } else {
+            setSubcategories([]);
+        }
     } else {
         setSubcategories([]);
         setSelectedSubcategory(null);
@@ -85,7 +114,8 @@ const useHomeAdsLogic = () => {
         }
       } catch (error) {
         console.error("Ошибка:", error);
-        toast.error(error.message);
+        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+        toast.error(errorMessage);
         setPublicAds([]); // Очищаем результаты при ошибке
       } finally {
         setLoading(false);
@@ -97,7 +127,7 @@ const useHomeAdsLogic = () => {
 
   
   // 4. Обработчик выбора категории
-  const handleCategorySelect = (categoryId, options = {}) => {
+  const handleCategorySelect = (categoryId: string | null, options: CategorySelectOptions = {}) => {
     const { isDropdownSelection } = options;
     if (isDropdownSelection) {
         setSelectedCategory(categoryId);
@@ -114,7 +144,7 @@ const useHomeAdsLogic = () => {
   };
 
   // 5. Обработчик выбора подкатегории
-  const handleSubcategorySelect = (subcategoryId) => {
+  const handleSubcategorySelect = (subcategoryId: string | null) => {
     setSelectedSubcategory(subcategoryId);
   };
 

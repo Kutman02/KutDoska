@@ -7,6 +7,7 @@ import Breadcrumb from "../components/Breadcrumb";
 import HomeSearchFilterBar from "../components/HomeSearchFilterBar";
 import AdListSection from "../components/AdListSection";
 import FilterPanel from "../components/FilterPanel";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAppSelector } from "../store/hooks";
 import useFavorites from "../hooks/useFavorites";
 import useAdActions from "../hooks/useAdActions";
@@ -214,6 +215,30 @@ const CategoryPage: React.FC = () => {
 
   const { isFavorite, toggleFavorite } = useFavorites();
   const { handleDelete } = useAdActions({ setPublicAds });
+  
+  // Состояние для модального окна подтверждения удаления
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    adId: string;
+    adTitle: string;
+  }>({
+    isOpen: false,
+    adId: "",
+    adTitle: "",
+  });
+  
+  const openDeleteModal = (adId: string, adTitle: string) => {
+    setDeleteConfirm({
+      isOpen: true,
+      adId,
+      adTitle,
+    });
+  };
+  
+  const handleConfirmDelete = async () => {
+    await handleDelete(deleteConfirm.adId);
+    setDeleteConfirm({ isOpen: false, adId: "", adTitle: "" });
+  };
 
   const isInitialLoad = loading && publicAds.length === 0;
 
@@ -236,6 +261,15 @@ const CategoryPage: React.FC = () => {
   return (
     <>
       <Toaster position="top-right" />
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, adId: "", adTitle: "" })}
+        onConfirm={handleConfirmDelete}
+        title="Удалить объявление?"
+        message={`Вы уверены, что хотите удалить объявление: "${deleteConfirm.adTitle}"? Это действие необратимо!`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+      />
       <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-8 bg-gray-50">
         <div className="max-w-7xl mx-auto py-8">
           <Breadcrumb items={breadcrumbItems} showHomeIcon={true} />
@@ -288,7 +322,7 @@ const CategoryPage: React.FC = () => {
             navigate={navigate}
             isFavorite={isFavorite}
             toggleFavorite={toggleFavorite}
-            handleDelete={handleDelete}
+            handleDelete={openDeleteModal}
             searchQuery={searchQuery}
             onSearchClear={() => setSearchQuery("")}
             loading={loading}

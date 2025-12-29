@@ -10,6 +10,7 @@ import Breadcrumb from "../components/Breadcrumb";
 import HomeSearchFilterBar from "../components/HomeSearchFilterBar";
 import AdListSection from "../components/AdListSection";
 import FilterPanel from "../components/FilterPanel";
+import ConfirmModal from "../components/ConfirmModal";
 import { useAppSelector } from "../store/hooks";
 import useFavorites from "../hooks/useFavorites";
 import useHomeAdsLogic from "../hooks/useHomeAdsLogic";
@@ -36,7 +37,31 @@ const PublicHome: React.FC = () => {
   const { isFavorite, toggleFavorite } = useFavorites(); 
   
   // 3. Логика действий (удаление)
-  const { handleDelete } = useAdActions({ setPublicAds }); 
+  const { handleDelete } = useAdActions({ setPublicAds });
+  
+  // Состояние для модального окна подтверждения удаления
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    adId: string;
+    adTitle: string;
+  }>({
+    isOpen: false,
+    adId: "",
+    adTitle: "",
+  });
+  
+  const openDeleteModal = (adId: string, adTitle: string) => {
+    setDeleteConfirm({
+      isOpen: true,
+      adId,
+      adTitle,
+    });
+  };
+  
+  const handleConfirmDelete = async () => {
+    await handleDelete(deleteConfirm.adId);
+    setDeleteConfirm({ isOpen: false, adId: "", adTitle: "" });
+  }; 
   
   // 4. Фильтры (город, цена)
   const [locations, setLocations] = useState<Location[]>([]);
@@ -172,6 +197,23 @@ const PublicHome: React.FC = () => {
     }
   }
 
+  // Адаптеры для преобразования типов между useHomeAdsLogic и компонентами
+  const handleCategorySelectAdapter = (category: Category | null) => {
+    if (category === null) {
+      handleCategorySelect(null);
+    } else {
+      handleCategorySelect(category._id);
+    }
+  };
+
+  const handleSubcategorySelectAdapter = (subcategory: Category | null) => {
+    if (subcategory === null) {
+      handleSubcategorySelect(null);
+    } else {
+      handleSubcategorySelect(subcategory._id);
+    }
+  };
+
   // Обработчик клика по breadcrumb
   const handleBreadcrumbClick = (categoryId: string | null) => {
     if (categoryId === null) {
@@ -191,6 +233,15 @@ const PublicHome: React.FC = () => {
   return (
     <>
       <Toaster position="top-right" />
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, adId: "", adTitle: "" })}
+        onConfirm={handleConfirmDelete}
+        title="Удалить объявление?"
+        message={`Вы уверены, что хотите удалить объявление: "${deleteConfirm.adTitle}"? Это действие необратимо!`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+      />
       {/* Полноэкранная страница без отдельного фона */}
       <div className="min-h-screen w-full pb-20 md:pb-0">
         {/* Контейнер на всю ширину */}
@@ -214,8 +265,8 @@ const PublicHome: React.FC = () => {
             <div className="w-full md:flex-1">
               <HomeSearchFilterBar
                   categories={categories}
-                  onCategorySelect={handleCategorySelect}
-                  onSubcategorySelect={handleSubcategorySelect}
+                  onCategorySelect={handleCategorySelectAdapter}
+                  onSubcategorySelect={handleSubcategorySelectAdapter}
                   currentCategoryName={currentCategoryName}
                   searchQuery={searchQuery}
                   onSearchChange={setSearchQuery}
@@ -251,12 +302,12 @@ const PublicHome: React.FC = () => {
               selectedSubcategory={selectedSubcategory}
               categories={categories}
               subcategories={subcategories}
-              handleCategorySelect={handleCategorySelect}
+              handleCategorySelect={handleCategorySelectAdapter}
               user={user}
               navigate={navigate}
               isFavorite={isFavorite}
               toggleFavorite={toggleFavorite}
-              handleDelete={handleDelete}
+              handleDelete={openDeleteModal}
               searchQuery={searchQuery}
               onSearchClear={() => setSearchQuery("")}
               loading={loading}

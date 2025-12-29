@@ -1,14 +1,20 @@
-// src/components/RegisterModal.jsx
-import { useState, useEffect } from "react";
+// src/components/RegisterModal.tsx
+import React, { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { registerUser, clearError, closeRegisterModal, openLoginModal } from "../store/slices/authSlice";
 import { FiUser, FiMail, FiLock, FiEdit3, FiAlertTriangle, FiCheckCircle, FiX } from "react-icons/fi";
 
-const RegisterModal = () => {
+interface ModalState {
+  show: boolean;
+  message: string;
+  success: boolean;
+}
+
+const RegisterModal: React.FC = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [modal, setModal] = useState({ show: false, message: "", success: false });
+  const [modal, setModal] = useState<ModalState>({ show: false, message: "", success: false });
 
   const dispatch = useAppDispatch();
   const { loading, error, showRegisterModal } = useAppSelector((state) => state.auth);
@@ -27,7 +33,7 @@ const RegisterModal = () => {
   useEffect(() => {
     if (!showRegisterModal) return;
     
-    const handleEscape = (e) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         dispatch(closeRegisterModal());
         setName("");
@@ -46,7 +52,7 @@ const RegisterModal = () => {
     };
   }, [showRegisterModal, dispatch]);
 
-  const handleRegister = async (e) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     dispatch(clearError());
     
@@ -117,7 +123,7 @@ const RegisterModal = () => {
                          focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white dark:focus:bg-slate-600 
                          text-gray-800 dark:text-slate-200 transition-colors placeholder-gray-500 dark:placeholder-slate-500"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               required
             />
           </div>
@@ -132,7 +138,7 @@ const RegisterModal = () => {
                          focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white dark:focus:bg-slate-600 
                          text-gray-800 dark:text-slate-200 transition-colors placeholder-gray-500 dark:placeholder-slate-500"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               required
             />
           </div>
@@ -147,7 +153,7 @@ const RegisterModal = () => {
                          focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white dark:focus:bg-slate-600 
                          text-gray-800 dark:text-slate-200 transition-colors placeholder-gray-500 dark:placeholder-slate-500"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
               required
             />
           </div>

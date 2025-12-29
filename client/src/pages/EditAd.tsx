@@ -1,81 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEditor, EditorContent, Editor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
 import toast, { Toaster } from "react-hot-toast";
-import { FiSave, FiTag, FiImage, FiX, FiDollarSign, FiMapPin, FiMenu, FiPhone, FiBriefcase } from "react-icons/fi";
+import { FiSave, FiMapPin, FiPhone, FiBriefcase } from "react-icons/fi";
+import { TbCircleLetterC } from "react-icons/tb";
 import Breadcrumb from "../components/Breadcrumb";
+import AdEditor from "../components/CreateAd/AdEditor";
+import ImageUploader from "../components/CreateAd/ImageUploader";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { fetchAdById, updateAd } from "../store/slices/adsSlice";
 import { fetchCategories, fetchSubcategories } from "../store/slices/categoriesSlice";
 import type { Category } from "../types/category.types";
 import type { Location } from "../types/location.types";
 import type { BreadcrumbItem } from "../types/component.types";
-
-// Классы для стилизации кнопок Tiptap (Обновлено для Soft UI)
-const TiptapButtonClass = (isActive: boolean): string => 
-  `p-2 rounded-lg text-sm font-medium transition duration-200 shadow-md 
-   ${isActive 
-     ? "bg-teal-500 text-white hover:bg-teal-600 shadow-teal-300/50" 
-     : "bg-white text-gray-700 hover:bg-gray-100 shadow-gray-200"
-   }`;
-  
-// Компонент меню редактора (обязателен для Tiptap)
-interface TiptapToolbarProps {
-  editor: Editor | null;
-}
-
-const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor }) => {
-    if (!editor) return null;
-
-    return (
-        <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
-            <button
-                type="button"
-                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                className={TiptapButtonClass(editor.isActive('heading', { level: 1 }))}
-            >
-                H1
-            </button>
-            <button
-                type="button"
-                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                className={TiptapButtonClass(editor.isActive('heading', { level: 2 }))}
-            >
-                H2
-            </button>
-            <button
-                type="button"
-                onClick={() => editor.chain().focus().toggleBold().run()}
-                className={TiptapButtonClass(editor.isActive('bold'))}
-            >
-                B
-            </button>
-            <button
-                type="button"
-                onClick={() => editor.chain().focus().toggleItalic().run()}
-                className={TiptapButtonClass(editor.isActive('italic'))}
-            >
-                I
-            </button>
-            <button
-                type="button"
-                onClick={() => editor.chain().focus().toggleBulletList().run()}
-                className={TiptapButtonClass(editor.isActive('bulletList'))}
-            >
-                • List
-            </button>
-            <button
-                type="button"
-                onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                className={TiptapButtonClass(editor.isActive('orderedList'))}
-            >
-                # List
-            </button>
-        </div>
-    );
-};
 
 const EditAd: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -85,13 +21,25 @@ const EditAd: React.FC = () => {
   const { currentAd, loading: adsLoading } = useAppSelector((state) => state.ads);
   const { categories, subcategories } = useAppSelector((state) => state.categories);
 
+  const PHONE_PREFIX = "+996";
+  
+  // Извлекаем только цифры из сохраненного номера (если есть)
+  const extractPhoneDigits = (phoneStr: string): string => {
+    if (!phoneStr) return "";
+    const digits = phoneStr.replace(/\D/g, "");
+    if (digits.startsWith("996") && digits.length > 3) {
+      return digits.substring(3);
+    }
+    return digits;
+  };
+  
+  const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [location, setLocation] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phoneDigits, setPhoneDigits] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [hidePhone, setHidePhone] = useState(false);
-  const [tags, setTags] = useState("");
   const [images, setImages] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<"content" | "media">("content"); 
   const [loading, setLoading] = useState(false);
   
   // Категории и локации
@@ -99,22 +47,8 @@ const EditAd: React.FC = () => {
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedCityId, setSelectedCityId] = useState("");
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({
-        placeholder: "Введите подробное описание товара или услуги...",
-      }),
-    ],
-    content: "",
-    editorProps: {
-      attributes: {
-        // Стиль для светлого UI
-        class: "prose max-w-none focus:outline-none p-4 text-gray-800 min-h-[400px]", 
-      },
-    },
-  });
+  const [districts, setDistricts] = useState<Location[]>([]);
+  const [selectedDistrictId, setSelectedDistrictId] = useState("");
 
   // Загрузка категорий и локаций
   useEffect(() => {
@@ -133,48 +67,94 @@ const EditAd: React.FC = () => {
     fetchLocations();
   }, [dispatch]);
 
-  // Загрузка подкатегорий при изменении категории
-  useEffect(() => {
-    if (selectedCategoryId) {
-      dispatch(fetchSubcategories(selectedCategoryId));
+  // Загрузка подкатегорий
+  const fetchSubcategoriesList = async (categoryId: string) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/categories/${categoryId}/subcategories`);
+      if (response.ok) {
+        const data = await response.json();
+        dispatch(fetchSubcategories(categoryId));
+      }
+    } catch (error) {
+      console.error(error);
     }
-  }, [selectedCategoryId, dispatch]);
+  };
+
+  // Загрузка районов при выборе города
+  const fetchDistricts = async (cityId: string) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/locations/${cityId}/districts`);
+      if (response.ok) {
+        const data = await response.json();
+        setDistricts(data);
+        setSelectedDistrictId("");
+      }
+    } catch (error) {
+      console.error(error);
+      setDistricts([]);
+    }
+  };
+
+  // Обработчик изменения категории
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const categoryId = e.target.value;
+    setSelectedCategoryId(categoryId);
+    setSelectedSubcategoryId("");
+    if (categoryId) {
+      fetchSubcategoriesList(categoryId);
+    }
+  };
+
+  // Обработчик изменения города
+  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const cityId = e.target.value;
+    setSelectedCityId(cityId);
+    if (cityId) {
+      fetchDistricts(cityId);
+    } else {
+      setDistricts([]);
+      setSelectedDistrictId("");
+    }
+  };
 
   // Fetch existing ad
   useEffect(() => {
-    if (editor && id) {
+    if (id) {
       dispatch(fetchAdById(id));
     }
-  }, [editor, id, dispatch]);
+  }, [id, dispatch]);
 
   // Обновление формы при загрузке объявления
   useEffect(() => {
     if (currentAd) {
+      setDescription(currentAd.content || "");
       setPrice(currentAd.price?.toString() || "");
       setLocation(currentAd.location || "");
-      setPhone(currentAd.phone || "");
+      setPhoneDigits(extractPhoneDigits(currentAd.phone || ""));
       setHidePhone(currentAd.hidePhone || false);
-      setTags(currentAd.tags?.join(", ") || "");
       setImages(currentAd.images && currentAd.images.length > 0 ? currentAd.images : (currentAd.imageUrl ? [currentAd.imageUrl] : []));
       const categoryId = typeof currentAd.category === 'object' && currentAd.category !== null ? currentAd.category._id : currentAd.category || "";
       setSelectedCategoryId(categoryId);
+      if (categoryId) {
+        fetchSubcategoriesList(categoryId);
+      }
       const subcategoryId = typeof currentAd.subcategory === 'object' && currentAd.subcategory !== null ? currentAd.subcategory._id : currentAd.subcategory || "";
       setSelectedSubcategoryId(subcategoryId);
       const locationId = typeof currentAd.locationId === 'object' && currentAd.locationId !== null ? currentAd.locationId._id : currentAd.locationId || "";
       setSelectedCityId(locationId);
-      editor?.commands.setContent(currentAd.content || "");
+      if (locationId) {
+        fetchDistricts(locationId);
+      }
     }
-  }, [currentAd, editor]);
+  }, [currentAd]);
 
   // Handle image upload
   const handleImageUpload = async (selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
-
-    // Ограничиваем количество изображений до 5
     const filesToUpload = Array.from(selectedFiles).slice(0, 5 - images.length);
     
     if (filesToUpload.length === 0) {
-      toast.error("Можно загрузить максимум 5 изображений");
+      toast.error("Максимум 5 изображений");
       return;
     }
 
@@ -183,378 +163,366 @@ const EditAd: React.FC = () => {
       const uploadPromises = filesToUpload.map(async (file: File) => {
         const formData = new FormData();
         formData.append("file", file);
-
-        const res = await fetch("http://localhost:8080/api/upload/ad-image", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) throw new Error("Не удалось загрузить изображение");
+        const res = await fetch("http://localhost:8080/api/upload/ad-image", { method: "POST", body: formData });
+        if (!res.ok) throw new Error("Не удалось загрузить");
         const data = await res.json();
         return data.imageUrl;
       });
 
       const uploadedUrls = await Promise.all(uploadPromises);
       setImages([...images, ...uploadedUrls]);
-      toast.success(`Загружено ${uploadedUrls.length} изображений!`);
     } catch (err) {
-      toast.error("Ошибка загрузки изображений");
-      const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
-      console.error("Image upload error:", errorMessage);
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка загрузки изображений';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRemoveImage = (indexToRemove: number) => {
-    setImages(images.filter((_, index) => index !== indexToRemove));
+  const handleRemoveImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
+  // ОБРАБОТЧИК ДЛЯ ТЕЛЕФОНА
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, "");
+    if (value.length <= 9) {
+      setPhoneDigits(value);
+      if (value.length === 9) {
+        setPhoneError("");
+      } else if (value.length > 0) {
+        setPhoneError(value.length === 8 ? "Номер должен содержать ровно 9 цифр" : "");
+      } else {
+        setPhoneError("");
+      }
+    } else {
+      setPhoneError("Номер должен содержать ровно 9 цифр");
+    }
   };
 
   // Handle update ad
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!editor?.getText().trim()) {
-        toast.error("Описание не может быть пустым.");
+    if (!description.trim()) {
+      toast.error("Описание объявления обязательно");
         return;
     }
 
     if (images.length === 0) {
-        toast.error("Необходимо загрузить хотя бы одно изображение.");
-        return;
-    }
-
-    if (!phone || phone.trim() === "") {
-        toast.error("Номер телефона обязателен.");
-        return;
+      toast.error("Необходимо загрузить хотя бы одно изображение");
+      return;
     }
 
     if (!selectedCategoryId) {
-        toast.error("Пожалуйста, выберите категорию.");
-        return;
+      toast.error("Необходимо выбрать категорию");
+      return;
+    }
+
+    if (subcategories.length > 0 && !selectedSubcategoryId) {
+      toast.error("Необходимо выбрать подкатегорию");
+      return;
     }
 
     if (!selectedCityId) {
-        toast.error("Пожалуйста, выберите город.");
+      toast.error("Необходимо выбрать город");
         return;
     }
 
-    const content = editor.getHTML();
-    const tagArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag);
-    const finalPrice = price && parseFloat(price) > 0 ? parseFloat(price) : 0;
-    const generatedTitle = content.trim().substring(0, 100) || "Объявление";
+    // Валидация телефона
+    if (!phoneDigits || phoneDigits.length !== 9) {
+      setPhoneError("Номер должен содержать ровно 9 цифр");
+      toast.error("Номер телефона должен содержать ровно 9 цифр");
+      return;
+    }
 
     if (!id) {
       toast.error("ID объявления не найден");
       return;
     }
 
+    try {
     setLoading(true);
+      const finalPrice = price && parseFloat(price) > 0 ? parseFloat(price) : 0;
+      const generatedTitle = description.trim().substring(0, 100) || "Объявление";
+
     const result = await dispatch(updateAd({
       id,
       adData: {
         title: generatedTitle,
-        content, 
-        tags: tagArray, 
+          content: description,
+          tags: [],
         images: images.length > 0 ? images : [],
         imageUrl: images.length > 0 ? images[0] : "",
         price: finalPrice,
         location,
-        phone,
+        phone: `${PHONE_PREFIX}${phoneDigits}`,
         hidePhone,
-        locationId: selectedCityId,
+          locationId: selectedDistrictId || selectedCityId,
         category: selectedCategoryId,
         subcategory: selectedSubcategoryId || null,
       }
     }));
-
-    setLoading(false);
 
     if (updateAd.fulfilled.match(result)) {
       toast.success("Объявление успешно обновлено!");
       setTimeout(() => navigate("/dashboard"), 1500);
     } else {
       toast.error(result.payload || "Ошибка обновления объявления");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка обновления объявления';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // --- HTML для вкладки "Метаданные/Медиа" (СТИЛЬ SOFT UI) ---
-  const MetadataTab = (
-    <div className="space-y-6 p-6">
-        
-        {/* Цена и Локация */}
-        <div className="flex flex-col sm:flex-row gap-4">
-            {/* Поле Цены */}
-            <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-md w-full sm:w-1/2 shadow-inner">
-                <FiDollarSign className="w-5 h-5 text-teal-600" />
-                <input
-                type="number"
-                placeholder="Цена (в сомах) или 0 для 'Договорная'"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="w-full bg-transparent text-gray-800 focus:outline-none appearance-none"
-                min="0"
-                />
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Если 0 или не указано, будет отображаться "Договорная"</p>
-            {/* Поле Локации */}
-            <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-md w-full sm:w-1/2 shadow-inner">
-                <FiMapPin className="w-5 h-5 text-teal-600" />
-                <input
-                type="text"
-                placeholder="Город или адрес"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full bg-transparent text-gray-800 focus:outline-none"
-                />
-            </div>
-        </div>
-
-        {/* Tags Input */}
-        <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-xl shadow-inner">
-            <FiTag className="w-5 h-5 text-teal-600" />
-            <input
-                type="text"
-                placeholder="Ключевые слова (через запятую)"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                className="w-full bg-transparent text-gray-800 focus:outline-none"
-            />
-        </div>
-
-        {/* Phone Input */}
-        <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Номер телефона <span className="text-red-500">*</span></label>
-            <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-md shadow-inner">
-                <FiPhone className="w-5 h-5 text-teal-600" />
-                <input
-                    type="tel"
-                    placeholder="Номер телефона (например: +996 555 123456)"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-transparent text-gray-800 focus:outline-none"
-                    required
-                />
-            </div>
-            <div className="mt-2 flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="hidePhone"
-                checked={hidePhone}
-                onChange={(e) => setHidePhone(e.target.checked)}
-                className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
-              />
-              <label htmlFor="hidePhone" className="text-sm text-gray-700 cursor-pointer">
-                Скрыть номер телефона
-              </label>
-            </div>
-        </div>
-
-        {/* Categories and Locations */}
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Категория <span className="text-red-500">*</span></label>
-            <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-md border border-gray-200">
-              <FiBriefcase className="w-5 h-5 text-teal-500" />
-              <select 
-                value={selectedCategoryId} 
-                onChange={(e) => {
-                  setSelectedCategoryId(e.target.value);
-                  setSelectedSubcategoryId("");
-                }} 
-                className="w-full bg-transparent outline-none cursor-pointer text-gray-700" 
-                required
-              >
-                <option value="">Выберите категорию</option>
-                {categories.map((cat: Category) => (
-                  <option key={cat._id} value={cat._id}>{cat.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {selectedCategoryId && subcategories.length > 0 && (
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Подкатегория</label>
-              <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-md border border-gray-200">
-                <FiBriefcase className="w-5 h-5 text-teal-500" />
-                <select 
-                  value={selectedSubcategoryId} 
-                  onChange={(e) => setSelectedSubcategoryId(e.target.value)} 
-                  className="w-full bg-transparent outline-none cursor-pointer text-gray-700"
-                >
-                  <option value="">Выберите подкатегорию</option>
-                  {subcategories.map((sub: Category) => (
-                    <option key={sub._id} value={sub._id}>{sub.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Город <span className="text-red-500">*</span></label>
-            <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-md border border-gray-200">
-              <FiMapPin className="w-5 h-5 text-teal-500" />
-              <select 
-                value={selectedCityId} 
-                onChange={(e) => setSelectedCityId(e.target.value)} 
-                className="w-full bg-transparent outline-none cursor-pointer text-gray-700" 
-                required
-              >
-                <option value="">Выберите город</option>
-                {locations.map((city: Location) => (
-                  <option key={city._id} value={city._id}>{city.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Image Upload/Preview */}
-        <div className="border-2 border-dashed border-gray-200 p-4">
-            <label 
-                htmlFor="image-upload" 
-                // Стиль кнопки загрузки Soft UI
-                className={`flex items-center justify-center w-full p-3 rounded-md font-bold cursor-pointer transition-colors
-                          ${images.length > 0 
-                            ? 'bg-teal-100 text-teal-700 border border-teal-500 shadow-teal-200' 
-                            : 'bg-teal-500 text-white hover:bg-teal-600 shadow-teal-400/50'}`}>
-                <FiImage className="w-5 h-5 mr-2" />
-                {images.length > 0 ? `Загружено ${images.length}/5 фото (Нажмите для добавления)` : "Загрузить фото товара (до 5 шт.)"}
-                <input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => handleImageUpload(e.target.files)}
-                    className="hidden"
-                />
-            </label>
-
-            {/* Images Preview Gallery */}
-            {images.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
-                    {images.map((imgUrl: string, index: number) => (
-                        <div key={index} className="relative border-2 border-dashed border-gray-200 bg-gray-50 rounded-md p-2">
-                            <img
-                                src={imgUrl}
-                                alt={`Ad Image ${index + 1}`}
-                                className="w-full h-40 object-cover rounded-md"
-                            />
-                            <button 
-                                type="button" 
-                                onClick={() => handleRemoveImage(index)}
-                                className="absolute top-3 right-3 bg-red-500 text-white p-1.5 rounded-md font-bold text-xs hover:bg-red-600 transition-colors"
-                                title="Удалить изображение"
-                            >
-                                <FiX className="w-4 h-4" />
-                            </button>
-                            <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                                {index + 1}/{images.length}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    </div>
-  );
-
-  if (!editor || loading || adsLoading) {
+  if (loading || adsLoading || !currentAd) {
     return (
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen w-full p-2 sm:p-4 md:p-8 bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
             <div className="flex items-center text-lg text-teal-600">
                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                {loading ? "Загрузка данных объявления..." : "Инициализация редактора..."}
+                {loading ? "Сохранение..." : "Загрузка данных объявления..."}
             </div>
         </div>
     );
   }
 
   // Формируем breadcrumb items
-  const contentPreview = editor?.getText() || "";
-  const breadcrumbTitle = contentPreview.length > 30 ? contentPreview.substring(0, 30) + "..." : contentPreview || "Редактирование";
+  const contentPreview = description.length > 30 ? description.substring(0, 30) + "..." : description || "Редактирование";
   const breadcrumbItems: BreadcrumbItem[] = [
     { label: "Панель управления", path: "/dashboard" },
     { label: "Мои объявления", path: "/dashboard?tab=ads" },
-    { label: breadcrumbTitle, path: `/edit-ad/${id || ''}` }
+    { label: contentPreview, path: `/edit-ad/${id || ''}` }
   ];
 
   return (
-    <div className="min-h-screen w-full p-4 sm:p-8">
+    <div className="min-h-screen w-full p-2 sm:p-4 md:p-8 bg-gray-50 dark:bg-slate-900 transition-colors duration-200">
       <Toaster position="top-right" />
-      {/* Главный контейнер Soft UI */}
-      <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl shadow-gray-300/60 overflow-hidden">
-        
-        {/* Breadcrumb */}
-        <div className="p-4 border-b border-gray-100">
-          <Breadcrumb items={breadcrumbItems} showHomeIcon={true} />
+      <div className="w-full max-w-7xl mx-auto">
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-slate-100 mb-4 sm:mb-6 md:mb-8 pb-2">
+          Редактирование объявления
+        </h2>
+
+        <form onSubmit={handleUpdate} className="space-y-6">
+          
+          {/* ФОТОГРАФИИ на мобильных (показывается первым сверху) */}
+          <div className="lg:hidden order-first">
+            <div className="w-full">
+              <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2 ml-1">
+                Фотографии <span className="text-red-500">*</span>
+              </label>
+              <ImageUploader 
+                  images={images} 
+                  onUpload={handleImageUpload} 
+                  onRemove={handleRemoveImage} 
+                />
+            </div>
+          </div>
+
+          {/* Двухколоночный layout для ПК */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+            
+            {/* ЛЕВАЯ КОЛОНКА: ФОТОГРАФИИ (только на ПК) */}
+            <div className="hidden lg:block lg:col-span-1">
+              <div className="w-full">
+                <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2 ml-1">
+                  Фотографии <span className="text-red-500">*</span>
+                </label>
+                <ImageUploader 
+                    images={images} 
+                    onUpload={handleImageUpload} 
+                    onRemove={handleRemoveImage} 
+                />
+            </div>
         </div>
 
-        {/* Заголовок Рабочей Области */}
-        <header className="p-4 border-b border-gray-100 flex items-center gap-3">
-            <FiMenu className="w-6 h-6 text-teal-500" />
-            <h2 className="text-xl font-extrabold text-gray-900">
-                Редактирование объявления
-            </h2>
-        </header>
+            {/* ПРАВАЯ КОЛОНКА: Остальные поля (только на ПК) */}
+            <div className="lg:col-span-1 space-y-6">
 
-        <form onSubmit={handleUpdate}>
-            {/* Навигация по вкладкам (Стиль Soft UI) */}
-            <div className="flex border-b border-gray-100">
-                <button
-                    type="button"
-                    onClick={() => setActiveTab("content")}
-                    className={`px-6 py-3 text-sm font-semibold transition duration-200 
-                        ${activeTab === "content" 
-                            ? "border-b-4 border-teal-500 text-teal-600 bg-teal-50"
-                            : "text-gray-600 hover:bg-gray-100"}`}
-                >
-                    Описание <span className="text-red-500">*</span>
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setActiveTab("media")}
-                    className={`px-6 py-3 text-sm font-semibold transition duration-200 
-                        ${activeTab === "media" 
-                            ? "border-b-4 border-teal-500 text-teal-600 bg-teal-50"
-                            : "text-gray-600 hover:bg-gray-100"}`}
-                >
-                    Цена / Медиа / Категории
-                </button>
-            </div>
+              {/* 2. ОПИСАНИЕ */}
+              <div>
+                 <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2 ml-1">
+                   Описание <span className="text-red-500">*</span>
+                 </label>
+                 <AdEditor content={description} onChange={setDescription} />
+              </div>
 
-            {/* Контент вкладок */}
-            <div className="p-0">
-                {activeTab === "content" && (
-                    <div className="space-y-4">
-                        {/* Editor Toolbar (Soft UI) */}
-                        <div className="border-b border-gray-200">
-                            <TiptapToolbar editor={editor} />
-                        </div>
-                        {/* Editor Content */}
-                        <div className="min-h-[400px]">
-                            <EditorContent editor={editor} />
-                        </div>
+              {/* 3. КАТЕГОРИЯ И ПОДКАТЕГОРИЯ */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2 ml-1">
+                      Категория <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-700 p-3 rounded-md border border-gray-200 dark:border-slate-600">
+                      <FiBriefcase className="w-5 h-5 text-teal-500 dark:text-teal-400" />
+                      <select
+                        value={selectedCategoryId}
+                        onChange={handleCategoryChange}
+                        className="w-full bg-transparent outline-none cursor-pointer text-gray-700 dark:text-slate-200"
+                        required
+                      >
+                        <option value="">Выберите категорию</option>
+                        {categories.map((cat: Category) => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
+                      </select>
+                  </div>
+                </div>
+
+                {/* Подкатегория показывается сразу после выбора категории */}
+                {selectedCategoryId && subcategories.length > 0 && (
+                  <div className="transition-all duration-300 ease-in-out">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2 ml-1">
+                        Подкатегория <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-700 p-3 rounded-md border border-gray-200 dark:border-slate-600">
+                        <FiBriefcase className="w-5 h-5 text-teal-500 dark:text-teal-400" />
+                        <select
+                          value={selectedSubcategoryId}
+                          onChange={(e) => setSelectedSubcategoryId(e.target.value)}
+                          className="w-full bg-transparent outline-none cursor-pointer text-gray-700 dark:text-slate-200"
+                          required
+                        >
+                          <option value="">Выберите подкатегорию</option>
+                          {subcategories.map((sub: Category) => <option key={sub._id} value={sub._id}>{sub.name}</option>)}
+                        </select>
                     </div>
+                  </div>
                 )}
 
-                {activeTab === "media" && MetadataTab}
-            </div>
+                {/* Сообщение, если у категории нет подкатегорий */}
+                {selectedCategoryId && subcategories.length === 0 && (
+                  <div className="text-sm text-gray-500 dark:text-slate-400 italic ml-1">
+                    У этой категории нет подкатегорий. Можно продолжить без выбора подкатегории.
+                  </div>
+                )}
+              </div>
 
-            {/* Кнопка Сохранения (Акцентная Soft UI) */}
-            <div className="p-6 border-t border-gray-100 bg-gray-50">
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 bg-teal-600 text-white px-6 py-3 font-bold rounded-2xl 
-                               shadow-xl shadow-teal-400/50 hover:bg-teal-700 transition duration-300 transform hover:-translate-y-1 disabled:opacity-50"
-                >
-                    <FiSave className="w-5 h-5" />
-                    {loading ? "Сохранение..." : "Сохранить объявление"}
-                </button>
+              {/* 4. ГОРОД / РАЙОН */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2 ml-1">
+                      Город <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-700 p-3 rounded-md border border-gray-200 dark:border-slate-600">
+                      <FiMapPin className="w-5 h-5 text-teal-500 dark:text-teal-400" />
+                      <select
+                        value={selectedCityId}
+                        onChange={handleCityChange}
+                        className="w-full bg-transparent outline-none cursor-pointer text-gray-700 dark:text-slate-200"
+                        required
+                      >
+                        <option value="">Выберите город</option>
+                        {locations.map((city: Location) => <option key={city._id} value={city._id}>{city.name}</option>)}
+                      </select>
+                  </div>
+                </div>
+
+                {/* Район (если выбран город с районами) */}
+                {districts.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2 ml-1">
+                        Район (необязательно)
+                    </label>
+                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-700 p-3 rounded-md border border-gray-200 dark:border-slate-600">
+                        <FiMapPin className="w-5 h-5 text-teal-500 dark:text-teal-400" />
+                        <select
+                          value={selectedDistrictId}
+                          onChange={(e) => setSelectedDistrictId(e.target.value)}
+                          className="w-full bg-transparent outline-none cursor-pointer text-gray-700 dark:text-slate-200"
+                        >
+                          <option value="">Не выбрано</option>
+                          {districts.map((district: Location) => <option key={district._id} value={district._id}>{district.name}</option>)}
+                        </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Дополнительное текстовое поле для локации */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2 ml-1">
+                      Дополнительная информация о местоположении (необязательно)
+                  </label>
+                  <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-700 p-3 rounded-md border border-gray-200 dark:border-slate-600">
+                      <FiMapPin className="w-5 h-5 text-teal-500 dark:text-teal-400" />
+            <input
+                type="text"
+                          placeholder="Например: ул. Чуй, д. 123" 
+                          value={location} 
+                          onChange={e => setLocation(e.target.value)} 
+                          className="w-full bg-transparent outline-none text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500" 
+                      />
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. ЦЕНА */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2 ml-1">
+                    Цена (сом)
+                </label>
+                <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-700 p-3 rounded-md border border-gray-200 dark:border-slate-600">
+                    <TbCircleLetterC className="w-5 h-5 text-teal-500 dark:text-teal-400" />
+                    <input 
+                        type="number" 
+                        placeholder="Договорная" 
+                        value={price} 
+                        onChange={e => setPrice(e.target.value)} 
+                        className="w-full bg-transparent outline-none font-medium text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500" 
+                        min="0"
+                    />
+                </div>
+        </div>
+
+              {/* 6. НОМЕР ТЕЛЕФОНА */}
+        <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-2 ml-1">
+                    Номер телефона <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-700 p-3 rounded-md border border-gray-200 dark:border-slate-600">
+                    <FiPhone className="w-5 h-5 text-teal-500 dark:text-teal-400" />
+                    <span className="text-gray-700 dark:text-slate-300 font-medium">{PHONE_PREFIX}</span>
+                <input
+                    type="tel"
+                    placeholder="703601025"
+                    value={phoneDigits}
+                    onChange={handlePhoneChange}
+                    maxLength={9}
+                        className={`flex-1 bg-transparent outline-none text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 ${
+                          phoneError ? "border-b-2 border-red-500 dark:border-red-500" : ""
+                    }`}
+                    required
+                />
             </div>
+            {phoneError && (
+                  <p className="mt-1 text-xs text-red-500 dark:text-red-400 ml-1">{phoneError}</p>
+            )}
+            {!phoneError && phoneDigits && phoneDigits.length !== 9 && phoneDigits.length > 0 && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-slate-400 ml-1">
+                Введите 9 цифр (осталось {9 - phoneDigits.length})
+              </p>
+            )}
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="hidePhone"
+                checked={hidePhone}
+                onChange={(e) => setHidePhone(e.target.checked)}
+                    className="w-4 h-4 text-teal-600 dark:text-teal-500 border-gray-300 dark:border-slate-600 rounded focus:ring-teal-500 dark:focus:ring-teal-400 bg-white dark:bg-slate-700"
+              />
+                  <label htmlFor="hidePhone" className="text-sm text-gray-700 dark:text-slate-300 cursor-pointer">
+                Скрыть номер телефона
+              </label>
+            </div>
+        </div>
+            </div>
+          </div>
+
+          {/* Кнопка отправки */}
+          <button type="submit" disabled={loading} className="w-full max-w-md mx-auto lg:max-w-full mt-6 sm:mt-8 flex justify-center items-center bg-teal-600 dark:bg-teal-500 text-white py-2.5 sm:py-3 lg:py-2.5 rounded-md font-semibold text-base sm:text-lg lg:text-base hover:bg-teal-700 dark:hover:bg-teal-600 transition-colors disabled:opacity-50">
+            {loading ? "Сохранение..." : <><FiSave className="mr-2 w-4 h-4 sm:w-5 sm:h-5" /> Сохранить объявление</>}
+                            </button>
+
         </form>
       </div>
     </div>

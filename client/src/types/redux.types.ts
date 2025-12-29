@@ -62,6 +62,5 @@ export interface RootState {
   categories: CategoriesState;
   favorites: FavoritesState;
   search: SearchState;
-  theme: ThemeState;
 }
 

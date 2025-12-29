@@ -9,10 +9,24 @@ interface ProfileSettingsProps {
 }
 
 const ProfileSettings: React.FC<ProfileSettingsProps> = ({ user }) => {
+    const PHONE_PREFIX = "+996";
+    
+    // Извлекаем только цифры из сохраненного номера (если есть)
+    const extractPhoneDigits = (phoneStr: string): string => {
+        if (!phoneStr) return "";
+        // Убираем все нецифровые символы
+        const digits = phoneStr.replace(/\D/g, "");
+        // Если номер начинается с 996, убираем префикс
+        if (digits.startsWith("996") && digits.length > 3) {
+            return digits.substring(3);
+        }
+        return digits;
+    };
     
     const [name, setName] = useState(user?.name || "");
     const [email] = useState(user?.email || "");
-    const [phone, setPhone] = useState(user?.phone || "");
+    const [phoneDigits, setPhoneDigits] = useState(extractPhoneDigits(user?.phone || ""));
+    const [phoneError, setPhoneError] = useState("");
     const [website, setWebsite] = useState("");
     const [about, setAbout] = useState("");
     const [profileImageUrl, setProfileImageUrl] = useState("");
@@ -39,7 +53,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ user }) => {
 
                 const data = await res.json();
                 setName(data.displayName || user?.name || "");
-                setPhone(data.phone || user?.phone || "");
+                setPhoneDigits(extractPhoneDigits(data.phone || user?.phone || ""));
                 setWebsite(data.website || "");
                 setAbout(data.about || "");
                 setProfileImageUrl(data.profileImageUrl || "");
@@ -90,7 +104,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ user }) => {
                     },
                     body: JSON.stringify({
                         displayName: name,
-                        phone,
+                        phone: phoneDigits ? `${PHONE_PREFIX}${phoneDigits}` : "",
                         website,
                         about,
                         profileImageUrl: data.imageUrl,
@@ -128,7 +142,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ user }) => {
                 },
                 body: JSON.stringify({
                     displayName: name,
-                    phone,
+                    phone: phoneDigits ? `${PHONE_PREFIX}${phoneDigits}` : "",
                     website,
                     about,
                     profileImageUrl: "", // Удаляем фото
@@ -156,8 +170,27 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ user }) => {
         }
     };
 
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.replace(/\D/g, ""); // Только цифры
+        // Ограничиваем до 9 цифр
+        if (value.length <= 9) {
+            setPhoneDigits(value);
+            setPhoneError("");
+        } else {
+            setPhoneError("Номер должен содержать ровно 9 цифр");
+        }
+    };
+
     const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        
+        // Валидация телефона
+        if (phoneDigits && phoneDigits.length !== 9) {
+            setPhoneError("Номер должен содержать ровно 9 цифр");
+            toast.error("Номер телефона должен содержать ровно 9 цифр");
+            return;
+        }
+        
         try {
             setLoading(true);
             const token = localStorage.getItem("token");
@@ -174,7 +207,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ user }) => {
                 },
                 body: JSON.stringify({
                     displayName: name,
-                    phone,
+                    phone: phoneDigits ? `${PHONE_PREFIX}${phoneDigits}` : "",
                     website,
                     about,
                     profileImageUrl, // Отправляем новый или существующий URL
@@ -268,13 +301,30 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ user }) => {
                     </div>
                     <div>
                         <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Телефон</label>
-                        <input
-                            type="text"
-                            id="phone"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
-                        />
+                        <div className="flex items-center">
+                            <span className="px-4 py-3 border border-r-0 border-gray-200 dark:border-slate-600 rounded-l-md bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-300 font-medium">
+                                {PHONE_PREFIX}
+                            </span>
+                            <input
+                                type="tel"
+                                id="phone"
+                                value={phoneDigits}
+                                onChange={handlePhoneChange}
+                                placeholder="703601025"
+                                maxLength={9}
+                                className={`flex-1 px-4 py-3 border border-gray-200 dark:border-slate-600 rounded-r-md bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors ${
+                                    phoneError ? "border-red-500 dark:border-red-500" : ""
+                                }`}
+                            />
+                        </div>
+                        {phoneError && (
+                            <p className="mt-1 text-xs text-red-500 dark:text-red-400">{phoneError}</p>
+                        )}
+                        {!phoneError && phoneDigits && phoneDigits.length !== 9 && phoneDigits.length > 0 && (
+                            <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                                Введите 9 цифр (осталось {9 - phoneDigits.length})
+                            </p>
+                        )}
                     </div>
                     <div>
                         <label htmlFor="website" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Веб-сайт</label>

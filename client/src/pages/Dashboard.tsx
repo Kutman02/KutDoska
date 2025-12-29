@@ -90,21 +90,21 @@ const Dashboard: React.FC = () => {
   return (
     <>
       <Toaster position="top-right" />
-      {/* Цветной фон для отличия от главной страницы */}
-      <div className="min-h-screen w-full bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50">
-        <div className="w-full p-4 sm:p-6 lg:p-8">
-          {/* Карточка контента с белым фоном и тенью */}
-          <div className="bg-white rounded-2xl shadow-xl shadow-teal-100/50 p-6 sm:p-8 lg:p-10 max-w-7xl mx-auto">
-            <div className="w-full py-4">
+      {/* Полноэкранный контейнер с минимальными отступами */}
+      <div className="min-h-screen w-full bg-linear-to-br from-teal-50 via-cyan-50 to-blue-50">
+        <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          {/* Карточка контента с белым фоном и тенью - полноэкранная */}
+          <div className="bg-white rounded-2xl shadow-xl shadow-teal-100/50 p-4 sm:p-6 lg:p-8 xl:p-10 w-full">
+            <div className="w-full py-2 sm:py-4">
               {/* Breadcrumb */}
               <Breadcrumb items={getBreadcrumbItems()} showHomeIcon={true} />
               
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 mt-4">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 sm:mb-6 mt-2 sm:mt-4">
                 Панель Управления {user && user.role === "admin" && <span className="text-teal-600">(Администратор)</span>}
               </h1>
               
               {/* Навигация по вкладкам (Tabs) */}
-              <div className="flex border-b-2 border-gray-200 mb-8 overflow-x-auto bg-gray-50 rounded-t-lg -mx-2 px-2">
+              <div className="flex border-b-2 border-gray-200 mb-6 sm:mb-8 overflow-x-auto bg-gray-50 rounded-t-lg -mx-2 sm:-mx-4 md:-mx-6 lg:-mx-8 xl:-mx-10 px-2 sm:px-4 md:px-6 lg:px-8 xl:px-10">
                 <TabButton tabName="ads" icon={FiGrid} label="Мои Объявления" />
                 <TabButton tabName="profile" icon={FiUser} label="Настройки Профиля" />
                 

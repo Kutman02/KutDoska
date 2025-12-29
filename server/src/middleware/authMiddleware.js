@@ -1,5 +1,6 @@
 // src/middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 import User from "../models/User.js";
 
 // 1. requireSignIn (Проверка токена и аутентификация)
@@ -13,6 +14,14 @@ export const requireSignIn = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
+    // Проверка подключения к MongoDB перед запросом
+    if (mongoose.connection.readyState !== 1) {
+        console.error("⚠️ MongoDB не подключен. Состояние:", mongoose.connection.readyState);
+        return res.status(503).json({ 
+            message: "Сервис временно недоступен. Проблемы с подключением к базе данных." 
+        });
+    }
+    
     const user = await User.findById(decoded.id).select("-password");
     if (!user) {
         return res.status(404).json({ message: "Пользователь не найден" });
@@ -21,8 +30,23 @@ export const requireSignIn = async (req, res, next) => {
     req.user = user;
     next();
   } catch (err) {
+    // Различаем типы ошибок
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+        console.error("Ошибка токена (JWT):", err.message);
+        return res.status(401).json({ message: "Неверный или просроченный токен" });
+    }
+    
+    // Ошибки подключения к MongoDB
+    if (err.name === 'MongoServerSelectionError' || err.name === 'MongoNetworkTimeoutError') {
+        console.error("Ошибка подключения к MongoDB:", err.message);
+        return res.status(503).json({ 
+            message: "Сервис временно недоступен. Проблемы с подключением к базе данных." 
+        });
+    }
+    
+    // Другие ошибки
     console.error("Ошибка токена:", err);
-    return res.status(401).json({ message: "Неверный или просроченный токен" });
+    return res.status(500).json({ message: "Внутренняя ошибка сервера" });
   }
 };
 

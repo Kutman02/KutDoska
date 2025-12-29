@@ -9,7 +9,7 @@ export default defineConfig({
     tailwindcss()
   ],
   resolve: {
-    extensions: ['.js', '.jsx', '.json'],
+    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
   },
   // 🔑 Добавляем объект 'server' для настройки хоста и порта
   server: {

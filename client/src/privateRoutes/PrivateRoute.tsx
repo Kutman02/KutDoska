@@ -1,9 +1,13 @@
-// src/components/PrivateRoute.jsx
-import { useEffect, useState } from "react";
+// src/privateRoutes/PrivateRoute.tsx
+import React, { useEffect, useState } from "react";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { setUser, openLoginModal } from "../store/slices/authSlice";
 
-const PrivateRoute = ({ children }) => {
+interface PrivateRouteProps {
+  children: React.ReactNode;
+}
+
+const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   const { user, token } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const [checking, setChecking] = useState(true);

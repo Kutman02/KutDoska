@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
 import "./App.css";
 import Dashboard from "./pages/Dashboard";
@@ -14,13 +14,13 @@ import PublicHome from "./pages/PublicHome";
 import CategoryPage from "./pages/CategoryPage";
 import AdView from "./pages/AdView";
 import Favorites from "./pages/Favorites"; 
-import Chats from "./pages/chats";
+import Chats from "./pages/Chats";
 import UserProfile from "./pages/UserProfile";
 import LoginModal from "./components/LoginModal";
 import RegisterModal from "./components/RegisterModal";
 import type { User } from "./types/user.types";
 
-function App() {
+const App: React.FC = () => {
   const dispatch = useAppDispatch();
   
   useEffect(() => {

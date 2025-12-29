@@ -1,7 +1,13 @@
-// src/components/SearchBar.jsx
+// src/components/SearchBar.tsx
+import React from "react";
 import { FiSearch } from "react-icons/fi";
 
-const SearchBar = ({ query, setQuery }) => {
+interface SearchBarProps {
+  query: string;
+  setQuery: (query: string) => void;
+}
+
+const SearchBar: React.FC<SearchBarProps> = ({ query, setQuery }) => {
   return (
     // 1. Контейнер: Светлый фон, сильное скругление, мягкая тень (Soft UI)
     <div className="mb-8 p-3 rounded-2xl bg-white shadow-lg shadow-gray-200">
@@ -14,7 +20,7 @@ const SearchBar = ({ query, setQuery }) => {
           type="text"
           placeholder="Найти объявления, товары или услуги..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
           
           // 2. Стиль поля ввода:
           //    - Увеличен padding (py-3, pl-12)

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import { FiLoader, FiArrowLeft, FiUser, FiPhone, FiMail, FiCalendar, FiGlobe } from 'react-icons/fi';
+import { FiLoader, FiArrowLeft, FiUser, FiPhone, FiCalendar, FiGlobe } from 'react-icons/fi';
 import AdCard from '../components/AdCard';
 import Breadcrumb from '../components/Breadcrumb';
 import type { UserProfileData } from '../types/page.types';
@@ -116,7 +116,7 @@ const UserProfile: React.FC = () => {
                   className="w-32 h-32 rounded-full object-cover shadow-lg"
                 />
               ) : (
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-lg">
+                <div className="w-32 h-32 rounded-full bg-linear-to-br from-teal-400 to-teal-600 flex items-center justify-center shadow-lg">
                   <FiUser className="w-16 h-16 text-white" />
                 </div>
               )}

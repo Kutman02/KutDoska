@@ -7,9 +7,11 @@ import {
   getProfileSettings, 
   updateProfileSettings,
   getUserProfile,
-  getUserAds
+  getUserAds,
+  getAllUsers,
+  deleteUser
 } from "../controllers/userController.js"; 
-import { requireSignIn } from "../middleware/authMiddleware.js";
+import { requireSignIn, isAdmin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -30,5 +32,11 @@ router.get("/users/:id/profile", getUserProfile);
 
 // 6. GET /api/auth/users/:id/ads (публичный)
 router.get("/users/:id/ads", getUserAds);
+
+// 7. GET /api/auth/users (только для админа)
+router.get("/users", requireSignIn, isAdmin, getAllUsers);
+
+// 8. DELETE /api/auth/users/:id (только для админа)
+router.delete("/users/:id", requireSignIn, isAdmin, deleteUser);
 
 export default router;

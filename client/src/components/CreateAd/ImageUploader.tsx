@@ -1,13 +1,15 @@
-// src/components/CreateAd/ImageUploader.jsx
+// src/components/CreateAd/ImageUploader.tsx
+import React from "react";
 import { FiImage, FiX, FiUpload } from "react-icons/fi";
+import type { ImageUploaderProps } from "../../types/component.types";
 
-const ImageUploader = ({ images, onUpload, onRemove }) => {
-  const handleDragOver = (e) => {
+const ImageUploader: React.FC<ImageUploaderProps> = ({ images, onUpload, onRemove }) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const files = e.dataTransfer.files;
@@ -29,7 +31,7 @@ const ImageUploader = ({ images, onUpload, onRemove }) => {
                     type="file"
                     accept="image/*"
                     multiple
-                    onChange={(e) => onUpload(e.target.files)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => onUpload(e.target.files)}
                     className="hidden"
                 />
                 <div className="flex flex-col items-center gap-3 sm:gap-4 text-center p-6 sm:p-8">
@@ -54,7 +56,7 @@ const ImageUploader = ({ images, onUpload, onRemove }) => {
         {/* Галерея превью */}
         {images.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-              {images.map((imgUrl, index) => (
+              {images.map((imgUrl: string, index: number) => (
                 <div key={index} className="relative border-2 border-dashed border-gray-200 dark:border-slate-600 bg-gray-50 dark:bg-slate-700 rounded-md p-2">
                   <img
                     src={imgUrl}
@@ -84,7 +86,7 @@ const ImageUploader = ({ images, onUpload, onRemove }) => {
                         type="file"
                         accept="image/*"
                         multiple
-                        onChange={(e) => onUpload(e.target.files)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onUpload(e.target.files)}
                         className="hidden"
                     />
                     <FiImage className="w-8 h-8 text-gray-400 dark:text-slate-500 mb-2" />

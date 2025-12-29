@@ -1,15 +1,24 @@
-// src/hooks/useFavorites.js
+// src/hooks/useFavorites.ts
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { toggleFavorite as toggleFavoriteAction, fetchFavorites } from '../store/slices/favoritesSlice';
 import { openLoginModal } from '../store/slices/authSlice';
+import type { Ad } from '../types/ad.types';
 
-const useFavorites = () => {
+interface UseFavoritesReturn {
+    favoriteIds: Set<string>;
+    isFavorite: (adId: string) => boolean;
+    toggleFavorite: (adId: string) => Promise<void>;
+    loading: boolean;
+    refetchFavorites: () => Promise<void>;
+}
+
+const useFavorites = (): UseFavoritesReturn => {
     const dispatch = useAppDispatch();
     const { user } = useAppSelector((state) => state.auth);
     const { favoriteIds: storeFavoriteIds } = useAppSelector((state) => state.favorites);
-    const [favoriteIds, setFavoriteIds] = useState(new Set(storeFavoriteIds)); 
+    const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set(storeFavoriteIds)); 
     const [loading, setLoading] = useState(false);
 
     // Синхронизация с store
@@ -28,11 +37,13 @@ const useFavorites = () => {
         try {
             const result = await dispatch(fetchFavorites());
             if (fetchFavorites.fulfilled.match(result)) {
-                const ids = new Set(result.payload.map(ad => ad._id));
+                const ads = result.payload as Ad[];
+                const ids = new Set(ads.map((ad: Ad) => ad._id));
                 setFavoriteIds(ids);
             }
         } catch (err) {
-            console.error(err.message);
+            const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
+            console.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -43,7 +54,7 @@ const useFavorites = () => {
     }, [fetchFavoriteIds]);
 
     // 2. Добавление/Удаление из избранного
-    const toggleFavorite = useCallback(async (adId) => {
+    const toggleFavorite = useCallback(async (adId: string): Promise<void> => {
         if (!user) {
             toast.error("Войдите в систему, чтобы добавить в избранное.");
             dispatch(openLoginModal());
@@ -66,16 +77,18 @@ const useFavorites = () => {
                 }
                 setFavoriteIds(newIds);
             } else {
-                toast.error(result.payload || "Ошибка операции с избранным.");
+                const errorMessage = result.payload || "Ошибка операции с избранным.";
+                toast.error(typeof errorMessage === 'string' ? errorMessage : "Ошибка операции с избранным.");
             }
         } catch (err) {
             console.error(err);
-            toast.error(err.message || "Ошибка операции с избранным.");
+            const errorMessage = err instanceof Error ? err.message : "Ошибка операции с избранным.";
+            toast.error(errorMessage);
         }
     }, [favoriteIds, user, dispatch]);
 
     // 3. Проверка статуса
-    const isFavorite = useCallback((adId) => {
+    const isFavorite = useCallback((adId: string): boolean => {
         return favoriteIds.has(adId);
     }, [favoriteIds]);
 

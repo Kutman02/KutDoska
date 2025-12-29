@@ -7,7 +7,6 @@ import toast from "react-hot-toast";
 // Импорт компонентов
 import AdEditor from "../components/CreateAd/AdEditor";
 import ImageUploader from "../components/CreateAd/ImageUploader";
-import Breadcrumb from "../components/Breadcrumb";
 import type { Category } from "../types/category.types";
 import type { Location } from "../types/location.types";
 
@@ -20,7 +19,9 @@ const CreateAd: React.FC = () => {
   const [price, setPrice] = useState("");
   const [location, setLocation] = useState("");
   // ИЗМЕНЕНИЕ 2: Устанавливаем дефолтное значение для номера телефона
-  const [phone, setPhone] = useState("+996"); 
+  const PHONE_PREFIX = "+996";
+  const [phoneDigits, setPhoneDigits] = useState(""); 
+  const [phoneError, setPhoneError] = useState("");
   const [hidePhone, setHidePhone] = useState(false);
   const [images, setImages] = useState<string[]>([]); 
   const [loading, setLoading] = useState(false);
@@ -159,22 +160,21 @@ const CreateAd: React.FC = () => {
     setImages(images.filter((_, i) => i !== index));
   };
   
-  // НОВЫЙ ОБРАБОТЧИК ДЛЯ ТЕЛЕФОНА
+  // ОБРАБОТЧИК ДЛЯ ТЕЛЕФОНА
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const prefix = '+996';
-    
-    // Если пользователь удалил все, кроме префикса, восстанавливаем его
-    if (value.length < prefix.length || !value.startsWith(prefix)) {
-        setPhone(prefix);
-        // Дополнительная проверка, чтобы не сбрасывать ввод, если пользователь пытается ввести цифры
-        if (value.length > prefix.length) {
-             // Позволяем вводить только цифры после префикса
-             const digits = value.replace(prefix, '').replace(/[^0-9]/g, '');
-             setPhone(prefix + digits);
-        }
+    const value = e.target.value.replace(/\D/g, ""); // Только цифры
+    // Ограничиваем до 9 цифр
+    if (value.length <= 9) {
+      setPhoneDigits(value);
+      if (value.length === 9) {
+        setPhoneError("");
+      } else if (value.length > 0) {
+        setPhoneError(value.length === 8 ? "Номер должен содержать ровно 9 цифр" : "");
+      } else {
+        setPhoneError("");
+      }
     } else {
-        setPhone(value);
+      setPhoneError("Номер должен содержать ровно 9 цифр");
     }
   };
 
@@ -210,8 +210,10 @@ const CreateAd: React.FC = () => {
       return;
     }
 
-    if (!phone || phone.trim() === "" || phone === "+996") {
-      toast.error("Необходимо указать номер телефона");
+    // Валидация телефона
+    if (!phoneDigits || phoneDigits.length !== 9) {
+      setPhoneError("Номер должен содержать ровно 9 цифр");
+      toast.error("Номер телефона должен содержать ровно 9 цифр");
       return;
     }
 
@@ -235,7 +237,7 @@ const CreateAd: React.FC = () => {
             price: finalPrice,
             location,
             locationId: selectedDistrictId || selectedCityId,
-            phone,
+            phone: `${PHONE_PREFIX}${phoneDigits}`,
             hidePhone,
             images,
             imageUrl: images[0] || "",
@@ -440,15 +442,27 @@ const CreateAd: React.FC = () => {
                 </label>
                 <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-700 p-3 rounded-md border border-gray-200 dark:border-slate-600">
                     <FiPhone className="w-5 h-5 text-teal-500 dark:text-teal-400" />
+                    <span className="text-gray-700 dark:text-slate-300 font-medium">{PHONE_PREFIX}</span>
                     <input 
                         type="tel" 
-                        placeholder="555 00 00 00"
-                        value={phone} 
+                        placeholder="703601025"
+                        value={phoneDigits} 
                         onChange={handlePhoneChange}
-                        className="w-full bg-transparent outline-none text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500" 
+                        maxLength={9}
+                        className={`flex-1 bg-transparent outline-none text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 ${
+                          phoneError ? "border-b-2 border-red-500 dark:border-red-500" : ""
+                        }`}
                         required
                     />
                 </div>
+                {phoneError && (
+                  <p className="mt-1 text-xs text-red-500 dark:text-red-400 ml-1">{phoneError}</p>
+                )}
+                {!phoneError && phoneDigits && phoneDigits.length !== 9 && phoneDigits.length > 0 && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-slate-400 ml-1">
+                    Введите 9 цифр (осталось {9 - phoneDigits.length})
+                  </p>
+                )}
                 <div className="mt-2 flex items-center gap-2">
                   <input
                     type="checkbox"

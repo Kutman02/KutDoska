@@ -66,12 +66,65 @@ app.post("/api/upload/ad-image", upload.single("file"), async (req, res) => {
 });
 
 
+// Настройки подключения к MongoDB с увеличенными таймаутами
+const mongooseOptions = {
+    serverSelectionTimeoutMS: 30000, // 30 секунд для выбора сервера
+    socketTimeoutMS: 45000, // 45 секунд для сокета
+    connectTimeoutMS: 30000, // 30 секунд для подключения
+    maxPoolSize: 10, // Максимальное количество соединений в пуле
+    retryWrites: true,
+    retryReads: true,
+};
+
+// Проверка наличия MONGO_URI
+if (!process.env.MONGO_URI) {
+    console.error("❌ ОШИБКА: MONGO_URI не установлен в переменных окружения!");
+    process.exit(1);
+}
+
+console.log("🔄 Подключение к MongoDB...");
+
 mongoose
-    .connect(process.env.MONGO_URI)
+    .connect(process.env.MONGO_URI, mongooseOptions)
     .then(() => {
-        console.log("MongoDB connected");
+        console.log("✅ MongoDB успешно подключен");
+        
+        // Обработчики событий подключения
+        mongoose.connection.on('error', (err) => {
+            console.error("❌ Ошибка MongoDB:", err);
+        });
+        
+        mongoose.connection.on('disconnected', () => {
+            console.warn("⚠️ MongoDB отключен. Попытка переподключения...");
+        });
+        
+        mongoose.connection.on('reconnected', () => {
+            console.log("✅ MongoDB переподключен");
+        });
+        
         app.listen(process.env.PORT || 8080, () =>
-            console.log(`Server running on port ${process.env.PORT || 8080}`)
+            console.log(`🚀 Сервер запущен на порту ${process.env.PORT || 8080}`)
         );
     })
-    .catch((err) => console.error("Mongo error", err));
+    .catch((err) => {
+        console.error("❌ КРИТИЧЕСКАЯ ОШИБКА подключения к MongoDB:");
+        console.error("Тип ошибки:", err.name);
+        console.error("Сообщение:", err.message);
+        
+        if (err.message.includes('timeout')) {
+            console.error("\n💡 Возможные причины:");
+            console.error("1. Проблемы с сетью или файрволом");
+            console.error("2. Неправильная строка подключения MONGO_URI");
+            console.error("3. IP адрес не добавлен в whitelist MongoDB Atlas");
+            console.error("4. Проблемы с DNS или доступностью серверов MongoDB");
+        }
+        
+        if (err.message.includes('authentication')) {
+            console.error("\n💡 Проверьте:");
+            console.error("1. Правильность имени пользователя и пароля в MONGO_URI");
+            console.error("2. Права доступа пользователя в MongoDB Atlas");
+        }
+        
+        console.error("\n📋 Проверьте файл .env и убедитесь, что MONGO_URI установлен правильно");
+        process.exit(1);
+    });

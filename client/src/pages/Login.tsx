@@ -1,15 +1,16 @@
-// src/pages/Login.jsx
-import { useState, useEffect } from "react";
+// src/pages/Login.tsx
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { loginUser, clearError } from "../store/slices/authSlice";
 import { FiMail, FiLock, FiLogIn, FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
 import toast from "react-hot-toast";
+import type { ModalState } from "../types/component.types";
 
-const Login = () => {
+const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [modal, setModal] = useState({ show: false, message: "", success: false });
+  const [modal, setModal] = useState<ModalState>({ show: false, message: "", success: false });
 
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -25,7 +26,7 @@ const Login = () => {
     }
   }, [error, dispatch]);
 
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     dispatch(clearError());
     
@@ -94,7 +95,7 @@ const Login = () => {
                            focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white 
                            text-gray-800 transition duration-200 shadow-inner placeholder-gray-500"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -110,7 +111,7 @@ const Login = () => {
                            focus:outline-none focus:ring-2 focus:ring-teal-400 focus:bg-white 
                            text-gray-800 transition duration-200 shadow-inner placeholder-gray-500"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 required
               />
             </div>

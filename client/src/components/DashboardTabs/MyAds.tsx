@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import AdCard from "../AdCard";
+import ConfirmModal from "../ConfirmModal";
 import { FiGrid, FiArrowLeft, FiArrowRight, FiPlus } from "react-icons/fi";
 import { useAppDispatch } from "../../store/hooks";
 import { openLoginModal } from "../../store/slices/authSlice";
@@ -32,6 +33,17 @@ const MyAds: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  
+  // Состояние для модального окна подтверждения удаления
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    adId: string;
+    adTitle: string;
+  }>({
+    isOpen: false,
+    adId: "",
+    adTitle: "",
+  });
 
   const fetchAds = useCallback(async () => {
     setLoading(true);
@@ -72,16 +84,21 @@ const MyAds: React.FC = () => {
   }, [fetchAds]);
 
 
-  const handleDelete = async (id: string, title: string) => {
-    const confirm = window.confirm(
-      `Вы уверены, что хотите удалить объявление: "${title}"? Это действие необратимо!`
-    );
-    if (!confirm) return;
+  const openDeleteModal = (id: string, title: string) => {
+    setDeleteConfirm({
+      isOpen: true,
+      adId: id,
+      adTitle: title,
+    });
+  };
 
+  const handleConfirmDelete = async () => {
+    const { adId } = deleteConfirm;
+    
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:8080/api/ads/${id}`,
+        `http://localhost:8080/api/ads/${adId}`,
         {
           method: "DELETE",
           headers: {
@@ -90,14 +107,19 @@ const MyAds: React.FC = () => {
         }
       );
 
-      if (!response.ok) throw new Error("Не удалось удалить объявление");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Не удалось удалить объявление");
+      }
 
-      setAds((prev) => prev.filter((ad) => ad._id !== id));
+      setAds((prev) => prev.filter((ad) => ad._id !== adId));
       toast.success("Объявление успешно удалено");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
       console.error(errorMessage);
-      toast.error("Не удалось удалить объявление");
+      toast.error(errorMessage);
+    } finally {
+      setDeleteConfirm({ isOpen: false, adId: "", adTitle: "" });
     }
   };
 
@@ -133,6 +155,15 @@ const MyAds: React.FC = () => {
 
   return (
     <>
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, adId: "", adTitle: "" })}
+        onConfirm={handleConfirmDelete}
+        title="Удалить объявление?"
+        message={`Вы уверены, что хотите удалить объявление: "${deleteConfirm.adTitle}"? Это действие необратимо!`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+      />
       {ads.length === 0 && !loading && !error ? (
         // Пустое состояние объявлений
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center bg-white rounded-3xl shadow-xl shadow-gray-300/50 p-12 mt-4">
@@ -189,7 +220,7 @@ const MyAds: React.FC = () => {
                       tags={ad.tags || []}
                       onCardClick={() => handleCardClick(ad._id)}
                       onEdit={() => navigate(`/edit-ad/${ad._id}`)}
-                      onDelete={() => handleDelete(ad._id, stripHtml(ad.content || ad.title || "").substring(0, 30))}
+                      onDelete={() => openDeleteModal(ad._id, stripHtml(ad.content || ad.title || "").substring(0, 30))}
                       views={ad.views}
                     />
                   );

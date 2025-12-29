@@ -31,7 +31,7 @@ interface AdListSectionProps {
     navigate: (path: string) => void;
     isFavorite: (adId: string) => boolean;
     toggleFavorite: (adId: string) => void;
-    handleDelete: (adId: string) => void;
+    handleDelete: (adId: string, adTitle?: string) => void;
     searchQuery?: string;
     onSearchClear?: () => void;
     loading?: boolean;
@@ -112,7 +112,10 @@ const AdListSection: React.FC<AdListSectionProps> = ({
                   {publicAds.map((ad: Ad) => {
                       // Логика проверки владельца перенесена сюда
                       const adUserId = typeof ad.user === 'object' && ad.user !== null ? ad.user._id : ad.user;
-                      const isOwner = user?._id && (user._id === adUserId); 
+                      const isOwner = user?._id && (user._id === adUserId);
+                      const isAdmin = user?.role === "admin";
+                      // Админ может удалять любые объявления, владелец - только свои
+                      const canDelete = isOwner || isAdmin;
                       
                       // Получаем название категории
                       const categoryName = typeof ad.subcategory === 'object' && ad.subcategory !== null 
@@ -123,6 +126,9 @@ const AdListSection: React.FC<AdListSectionProps> = ({
                       
                       // Получаем автора как объект User
                       const author = typeof ad.user === 'object' && ad.user !== null ? ad.user : undefined;
+                      
+                      // Формируем заголовок для модального окна
+                      const adTitle = stripHtml(ad.content || ad.title || "").substring(0, 50);
                       
                       return (
                           <AdCard
@@ -136,7 +142,7 @@ const AdListSection: React.FC<AdListSectionProps> = ({
                           categoryName={categoryName} 
                           onCardClick={() => navigate(`/ad-view/${ad._id}`)} 
                           onEdit={isOwner ? () => navigate(`/edit-ad/${ad._id}`) : null}
-                          onDelete={isOwner ? () => handleDelete(ad._id) : null} 
+                          onDelete={canDelete ? () => handleDelete(ad._id, adTitle) : null} 
                           isFavorite={isFavorite(ad._id)}
                           onToggleFavorite={toggleFavorite}
                           author={author}

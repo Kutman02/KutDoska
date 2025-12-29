@@ -9,10 +9,11 @@ interface BottomNavProps {
   isLoggedIn: boolean;
   favoritesCount?: number;
   onOpenLogin: () => void;
+  onOpenRegister: () => void;
 }
 
 // --- Компонент Нижней Навигации для Мобильных Устройств ---
-const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, favoritesCount = 0, onOpenLogin }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, favoritesCount = 0, onOpenLogin, onOpenRegister }) => {
     const location = useLocation();
     
     // Определяем иконки и маршруты для нижней панели
@@ -39,7 +40,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, favoritesCount = 0, o
                             return (
                                 <button
                                     key={item.name}
-                                    onClick={onOpenLogin}
+                                    onClick={onOpenRegister}
                                     className="flex flex-col items-center justify-center p-2 rounded-full transform -translate-y-4 
                                                bg-teal-600 text-white w-14 h-14 hover:bg-teal-700 transition-colors"
                                 >
@@ -63,7 +64,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ isLoggedIn, favoritesCount = 0, o
                         return (
                             <button
                                 key={item.name}
-                                onClick={onOpenLogin}
+                                onClick={onOpenRegister}
                                 className={`flex flex-col items-center p-2 rounded-md transition-colors relative ${
                                     isActive ? activeClass : inactiveClass
                                 }`}
@@ -297,41 +298,62 @@ const Navbar: React.FC = () => {
                   </div>
                 </>
               ) : (
-                // Единая иконка для Входа/Регистрации (Неавторизованный пользователь)
-                <div className="relative">
-                  <div
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="text-teal-600 dark:text-teal-400 bg-gray-100 dark:bg-slate-700 w-10 h-10 flex items-center justify-center rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors p-1"
-                    title="Войти или Зарегистрироваться"
+                <>
+                  {/* ИЗБРАННОЕ (для неавторизованных) */}
+                  <button
+                    onClick={() => dispatch(openRegisterModal())}
+                    className="text-gray-700 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors flex items-center gap-1 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 relative"
+                    title="Войдите, чтобы добавить в избранное"
                   >
-                    <FiUser className="w-6 h-6" />
-                  </div>
+                    <FiHeart className="w-5 h-5" />
+                  </button>
 
-                  {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-md overflow-hidden z-50 border border-gray-200 dark:border-slate-700 shadow-lg">
-                      <button
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          dispatch(openLoginModal());
-                        }}
-                        className="flex items-center gap-2 w-full text-left px-4 py-3 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors border-b border-gray-200 dark:border-slate-700"
-                      >
-                        <FiLogIn className="w-5 h-5 text-teal-500 dark:text-teal-400" />
-                        Войти
-                      </button>
-                      <button
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          dispatch(openRegisterModal());
-                        }}
-                        className="flex items-center gap-2 w-full text-left px-4 py-3 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                      >
-                        <FiUser className="w-5 h-5 text-teal-500 dark:text-teal-400" />
-                        Регистрация
-                      </button>
+                  {/* Новое объявление (Кнопка акцента для неавторизованных) */}
+                  <button
+                    onClick={() => dispatch(openRegisterModal())}
+                    className="flex items-center gap-1 bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors font-semibold text-sm"
+                    title="Войдите, чтобы создать объявление"
+                  >
+                    <FiPlusSquare className="w-4 h-4" />
+                    Новое объявление
+                  </button>
+
+                  {/* Иконка пользователя и Выпадающее меню */}
+                  <div className="relative profile-dropdown-container">
+                    <div
+                      onClick={() => setDropdownOpen(!dropdownOpen)}
+                      className="text-teal-600 dark:text-teal-400 bg-gray-100 dark:bg-slate-700 w-10 h-10 flex items-center justify-center rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors p-1"
+                      title="Войти или Зарегистрироваться"
+                    >
+                      <FiUser className="w-6 h-6" />
                     </div>
-                  )}
-                </div>
+
+                    {dropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-md overflow-hidden z-[60] border border-gray-200 dark:border-slate-700 shadow-lg">
+                        <button
+                          onClick={() => {
+                            setDropdownOpen(false);
+                            dispatch(openLoginModal());
+                          }}
+                          className="flex items-center gap-2 w-full text-left px-4 py-3 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors border-b border-gray-200 dark:border-slate-700"
+                        >
+                          <FiLogIn className="w-5 h-5 text-teal-500 dark:text-teal-400" />
+                          Войти
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDropdownOpen(false);
+                            dispatch(openRegisterModal());
+                          }}
+                          className="flex items-center gap-2 w-full text-left px-4 py-3 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          <FiUser className="w-5 h-5 text-teal-500 dark:text-teal-400" />
+                          Регистрация
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -343,6 +365,7 @@ const Navbar: React.FC = () => {
         isLoggedIn={isLoggedIn} 
         favoritesCount={favoritesCount} 
         onOpenLogin={() => dispatch(openLoginModal())}
+        onOpenRegister={() => dispatch(openRegisterModal())}
       />
     </>
   );

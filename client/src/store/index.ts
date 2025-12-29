@@ -5,7 +5,6 @@ import adsReducer from './slices/adsSlice';
 import favoritesReducer from './slices/favoritesSlice';
 import categoriesReducer from './slices/categoriesSlice';
 import searchReducer from './slices/searchSlice';
-import themeReducer from './slices/themeSlice';
 
 export const store = configureStore({
   reducer: {
@@ -14,7 +13,6 @@ export const store = configureStore({
     favorites: favoritesReducer,
     categories: categoriesReducer,
     search: searchReducer,
-    theme: themeReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
